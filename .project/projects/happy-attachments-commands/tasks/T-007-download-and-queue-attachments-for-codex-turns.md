@@ -1,10 +1,10 @@
 ---
 id: T-007
 name: Download and queue attachments for Codex turns
-status: planned
+status: done
 workstream: WS-C
 created: 2026-05-30T19:58:56Z
-updated: 2026-05-30T19:58:56Z
+updated: 2026-05-30T20:48:58Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -43,4 +43,8 @@ Mirror the Claude attachment drain path in the Codex runner so file events are c
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T20:48:58Z: Codex now registers file-event downloads, decrypts them through the existing session attachment helpers, drains attachments atomically on the next user message, and passes them into MessageQueue2 batches. Added queue ownership coverage for multiple attachments across batched messages. Verified with pnpm --filter happy typecheck and pnpm --filter happy exec vitest run src/utils/MessageQueue2.test.ts.
+
+- 2026-05-30T20:46:39Z: Implementing Codex-side file-event download and per-message attachment ownership.
 - 2026-05-30T19:58:56Z: Created from .project/templates/task.md by `delano task add`.

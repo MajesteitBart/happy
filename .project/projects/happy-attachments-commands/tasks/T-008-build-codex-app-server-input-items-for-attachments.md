@@ -1,10 +1,10 @@
 ---
 id: T-008
 name: Build Codex app-server input items for attachments
-status: planned
+status: done
 workstream: WS-C
 created: 2026-05-30T19:58:56Z
-updated: 2026-05-30T19:58:56Z
+updated: 2026-05-30T20:51:57Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -43,4 +43,8 @@ Send image attachments to Codex as native localImage/image items and expose docu
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T20:51:57Z: Codex app-server turns now build attachment-aware input arrays: images are written as restrictive temp files and sent as localImage items before the final text, documents are written to the same Happy-managed hidden directory and referenced by filename, MIME type, and relative readable path, with cleanup after turn completion, send failure, disconnect, or next turn. Verified with pnpm --filter happy typecheck and pnpm --filter happy exec vitest run src/codex/inputBuilder.test.ts src/codex/codexAppServerClient.test.ts src/utils/MessageQueue2.test.ts.
+
+- 2026-05-30T20:48:58Z: Building Codex app-server input items and temp-file handling for attachments.
 - 2026-05-30T19:58:56Z: Created from .project/templates/task.md by `delano task add`.

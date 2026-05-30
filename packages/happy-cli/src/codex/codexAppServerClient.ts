@@ -37,6 +37,8 @@ import type {
 import type { SandboxConfig } from '@/persistence';
 import { initializeSandbox, wrapForMcpTransport } from '@/sandbox/manager';
 import packageJson from '../../package.json';
+import type { PendingAttachment } from '@/utils/MessageQueue2';
+import { buildCodexInputItems } from './inputBuilder';
 
 type PendingRequest = {
     resolve: (result: unknown) => void;
@@ -139,6 +141,7 @@ export class CodexAppServerClient {
     // Tracks in-flight interruptTurn() RPCs so sendTurnAndWait can wait for them
     // before starting a new turn (prevents stale turn/interrupt from aborting the next turn).
     private pendingInterrupt: Promise<void> | null = null;
+    private activeTurnAttachmentCleanup: (() => Promise<void>) | null = null;
     private notificationProtocol: 'unknown' | 'legacy' | 'raw' = 'unknown';
     private completedTurnIds = new Set<string>();
     private rawFileChangesByItemId = new Map<string, LegacyPatchChanges>();
@@ -536,6 +539,8 @@ export class CodexAppServerClient {
         // Resolve pending turn completion (treat as abort)
         this.resolvePendingTurn(true);
 
+        await this.cleanupActiveTurnAttachments();
+
         if (this.sandboxCleanup) {
             try { await this.sandboxCleanup(); } catch { /* ignore */ }
             this.sandboxCleanup = null;
@@ -771,19 +776,24 @@ export class CodexAppServerClient {
         approvalPolicy?: ApprovalPolicy;
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
+        attachments?: PendingAttachment[];
     }): Promise<void> {
         if (!this._threadId) {
             throw new Error('No active thread. Call startThread first.');
         }
 
-        const input: InputItem[] = [
-            { type: 'text', text: prompt },
-        ];
+        await this.cleanupActiveTurnAttachments();
+        const preparedInput = await buildCodexInputItems({
+            prompt,
+            attachments: opts?.attachments,
+            cwd: opts?.cwd ?? this.threadDefaults?.cwd ?? process.cwd(),
+        });
+        this.activeTurnAttachmentCleanup = preparedInput.cleanup;
 
         // Build params — only include optional fields when set (server uses thread defaults otherwise)
         const params: Record<string, unknown> = {
             threadId: this._threadId,
-            input,
+            input: preparedInput.input,
         };
         if (opts?.cwd) params.cwd = opts.cwd;
         if (opts?.approvalPolicy) params.approvalPolicy = opts.approvalPolicy;
@@ -831,6 +841,7 @@ export class CodexAppServerClient {
         approvalPolicy?: ApprovalPolicy;
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
+        attachments?: PendingAttachment[];
         turnTimeoutMs?: number;
     }): Promise<{ aborted: boolean }> {
         // Wait for any in-flight interruptTurn() to complete before starting a new
@@ -866,12 +877,28 @@ export class CodexAppServerClient {
         } catch (err) {
             if (timer) clearTimeout(timer);
             this.pendingTurnCompletion = null;
+            await this.cleanupActiveTurnAttachments();
             throw err;
         }
 
-        const aborted = await completion;
-        if (timer) clearTimeout(timer);
-        return { aborted };
+        try {
+            const aborted = await completion;
+            return { aborted };
+        } finally {
+            if (timer) clearTimeout(timer);
+            await this.cleanupActiveTurnAttachments();
+        }
+    }
+
+    private async cleanupActiveTurnAttachments(): Promise<void> {
+        const cleanup = this.activeTurnAttachmentCleanup;
+        this.activeTurnAttachmentCleanup = null;
+        if (!cleanup) return;
+        try {
+            await cleanup();
+        } catch (error) {
+            logger.debug('[CodexAppServer] Failed to clean up attachment temp files', { error });
+        }
     }
 
     async interruptTurn(): Promise<void> {

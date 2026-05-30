@@ -23,6 +23,25 @@ describe('MessageQueue2', () => {
         expect(queue.size()).toBe(0);
     });
 
+    it('should keep attachments owned by their queued messages', async () => {
+        const queue = new MessageQueue2<string>(mode => mode);
+        const image = { data: new Uint8Array([1]), mimeType: 'image/png', name: 'photo.png' };
+        const doc = { data: new Uint8Array([2]), mimeType: 'application/pdf', name: 'report.pdf' };
+
+        queue.push('message1', 'local', [image]);
+        queue.push('message2', 'local', [doc]);
+        queue.push('message3', 'remote');
+
+        const firstBatch = await queue.waitForMessagesAndGetAsString();
+        expect(firstBatch?.message).toBe('message1\nmessage2');
+        expect(firstBatch?.attachments).toEqual([image, doc]);
+        expect(queue.size()).toBe(1);
+
+        const secondBatch = await queue.waitForMessagesAndGetAsString();
+        expect(secondBatch?.message).toBe('message3');
+        expect(secondBatch?.attachments).toBeUndefined();
+    });
+
     it('should return only messages with same mode and keep others', async () => {
         const queue = new MessageQueue2<string>(mode => mode);
         
