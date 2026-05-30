@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SandboxConfigSchema } from './persistence';
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { ensurePrivateDirectory, SandboxConfigSchema, writePrivateFile } from './persistence';
 
 describe('SandboxConfigSchema', () => {
     it('applies defaults when values are omitted', () => {
@@ -68,5 +71,40 @@ describe('SandboxConfigSchema', () => {
                 denyReadPaths: [123],
             }),
         ).toThrow();
+    });
+});
+
+describe('private persistence permissions', () => {
+    it('creates and repairs private directories with owner-only permissions', async () => {
+        const root = await mkdtemp(join(tmpdir(), 'happy-perms-'));
+        const directory = join(root, 'home');
+        try {
+            await ensurePrivateDirectory(directory);
+            expect((await stat(directory)).mode & 0o777).toBe(0o700);
+
+            await chmod(directory, 0o755);
+            await ensurePrivateDirectory(directory);
+            expect((await stat(directory)).mode & 0o777).toBe(0o700);
+        } finally {
+            await rm(root, { recursive: true, force: true });
+        }
+    });
+
+    it('writes and repairs private files with owner-only permissions', async () => {
+        const root = await mkdtemp(join(tmpdir(), 'happy-perms-'));
+        const file = join(root, 'access.key');
+        try {
+            await writePrivateFile(file, 'secret');
+            expect(await readFile(file, 'utf8')).toBe('secret');
+            expect((await stat(file)).mode & 0o777).toBe(0o600);
+
+            await chmod(file, 0o644);
+            await writeFile(file, 'old secret');
+            await writePrivateFile(file, 'new secret');
+            expect(await readFile(file, 'utf8')).toBe('new secret');
+            expect((await stat(file)).mode & 0o777).toBe(0o600);
+        } finally {
+            await rm(root, { recursive: true, force: true });
+        }
     });
 });
