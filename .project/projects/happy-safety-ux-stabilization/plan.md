@@ -1,10 +1,10 @@
 ---
 name: Happy Safety and UX Stabilization
-status: done
+status: active
 lead: Clark
 created: 2026-05-30T09:49:30Z
-updated: 2026-05-30T17:09:16Z
-linear_project_id:
+updated: 2026-05-30T20:18:59Z
+linear_project_id: 
 risk_level: high
 spec_status_at_plan_time: planned
 ---
@@ -14,6 +14,8 @@ spec_status_at_plan_time: planned
 ## What Changed After Review
 
 The scaffold project has been replaced with a detailed plan based on the attached public source-review report. The scope focuses on high-priority issues that improve safety and user experience: session lifecycle, sync scalability, security/privacy trust, command rendering, and CI/release safety.
+
+The later improvement analysis confirms that several slices are fixed or materially improved, but it also downgrades the hardest reliability items from "closed" to "needs proof." This project is reopened for follow-up verification and remaining implementation work around true handoff E2E coverage, legacy auth fallback removal, corporate proxy WebSocket support, real model catalog capabilities, mobile UX gaps, and automated compatibility evidence.
 
 ## Technical Context
 
@@ -32,6 +34,7 @@ Happy is a pnpm monorepo with app, CLI, agent, server, wire, log, and desktop pa
 - Security fixes get tests before broad refactors.
 - Privacy documentation must match runtime behavior before promoting trust claims.
 - Parser fixes should add message taxonomy and compact rendering instead of hiding individual strings one by one.
+- Source-level diagnostics are not enough to close handoff reliability; remaining claims need E2E or scripted integration evidence.
 
 ## Policy and Contract Checks
 
@@ -46,7 +49,7 @@ Happy is a pnpm monorepo with app, CLI, agent, server, wire, log, and desktop pa
 - `spec.md`: full safety/UX stabilization contract from attached review.
 - `plan.md`: phased delivery plan and test/rollout strategy.
 - `workstreams/`: five workstreams covering session lifecycle, sync/API compatibility, security/privacy, command rendering, and CI/release safety.
-- `tasks/`: sixteen detailed implementation tasks with acceptance criteria and evidence gates.
+- `tasks/`: twenty-two implementation and verification tasks with acceptance criteria and evidence gates.
 
 ## Complexity Exceptions
 
@@ -73,6 +76,7 @@ None yet. Tasks T-001, T-005, T-007, and T-011 include reproduction and fixture 
 - M3: Session lifecycle diagnostics and abort classification land with tests.
 - M4: Sync performance/capabilities land with app/server tests.
 - M5: CI matrix and release smoke enforce the new contracts.
+- M6: Follow-up proof work closes the remaining partial items: true handoff E2E, legacy auth fallback posture, proxy WebSocket support, model catalog, mobile UX gaps, and automated compatibility evidence.
 
 ## Rollout Strategy
 
@@ -88,6 +92,7 @@ None yet. Tasks T-001, T-005, T-007, and T-011 include reproduction and fixture 
 - Server route tests for capabilities, auth nonce, message idempotency, and replay rejection.
 - CLI/daemon integration tests for spawn/list/stop authorization and session recovery.
 - CI workflows for package-wide typecheck/test/build plus self-host smoke.
+- Follow-up tests must distinguish code-level coverage from user-flow proof; handoff, abort-to-new-dialog, daemon restart, detached sessions, WebSocket proxy behavior, and compatibility matrix runs need explicit evidence before those items are called closed.
 
 ## Rollback Strategy
 
@@ -102,3 +107,5 @@ None yet. Tasks T-001, T-005, T-007, and T-011 include reproduction and fixture 
 - Multi-package integration tests may need new fixtures or local harnesses.
 - Privacy/analytics defaults may require product sign-off.
 - Self-host compatibility work can grow if older app/server pairs need long support windows.
+- Legacy auth fallback and model catalog behavior need product/compatibility decisions before final rollout.
+- Corporate proxy support can be environment-sensitive; test harnesses must avoid logging proxy secrets.

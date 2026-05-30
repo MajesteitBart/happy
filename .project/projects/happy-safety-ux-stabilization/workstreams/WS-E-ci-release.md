@@ -2,9 +2,9 @@
 id: WS-E
 name: CI and Release Safety Net
 owner: Clark
-status: done
+status: active
 created: 2026-05-30T13:39:41Z
-updated: 2026-05-30T17:09:16Z
+updated: 2026-05-30T20:19:00Z
 operating_mode: scoped-change
 ---
 

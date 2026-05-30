@@ -2,9 +2,9 @@
 id: WS-C
 name: Security and Privacy Trust
 owner: Clark
-status: done
+status: active
 created: 2026-05-30T13:39:41Z
-updated: 2026-05-30T16:07:26Z
+updated: 2026-05-30T20:18:59Z
 operating_mode: scoped-change
 ---
 

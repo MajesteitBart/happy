@@ -2,9 +2,9 @@
 name: Happy Safety and UX Stabilization
 slug: happy-safety-ux-stabilization
 owner: Bart
-status: complete
+status: active
 created: 2026-05-30T09:49:30Z
-updated: 2026-05-30T17:09:16Z
+updated: 2026-05-30T20:18:59Z
 outcome: High-priority session reliability, sync correctness, security/privacy trust, and command-rendering UX risks are converted into detailed implementation workstreams with testable acceptance criteria.
 uncertainty: high
 probe_required: false
@@ -16,6 +16,8 @@ probe_status: skipped
 ## Executive Summary
 
 This project turns the external safety and user-experience review into an implementation backlog for the public `slopus/happy` codebase. The priority is not cosmetic UI polish. The priority is to make remote coding sessions trustworthy: local and remote control should hand off predictably, long histories should remain usable, daemon and auth surfaces should have defensible security boundaries, privacy claims should match actual analytics behavior, and internal command/skill content should not leak into normal chat UI.
+
+A follow-up improvement analysis found that the fork fixed several trust/security topics outright, but did not fully prove the hardest reliability and compatibility claims. This project therefore remains active for the remaining proof and implementation gaps: true local/remote handoff E2E, removal or strict gating of legacy auth fallback, WebSocket proxy support, real model catalog capabilities, mobile UX parity, and automated compatibility evidence.
 
 ## Problem and Users
 
@@ -38,6 +40,10 @@ The primary users are remote Happy users, self-host operators, maintainers triag
 - README/privacy docs accurately describe analytics behavior and self-host defaults.
 - Command, skill, and compaction messages render as safe system or command events instead of raw internal instruction bodies.
 - CI has package-wide checks for the new parser, security, sync, and daemon contracts.
+- Remaining partial items are either proven by E2E/compatibility evidence or kept open with a concrete blocker and next action.
+- Legacy auth fallback is no longer silently accepted in hardened deployments.
+- Corporate proxy WebSocket paths are tested against `http_proxy`, `https_proxy`, `all_proxy`, and `no_proxy` behavior without leaking proxy values.
+- Model availability is driven by an app/server-visible catalog rather than only hardcoded app choices.
 
 ## User Stories
 
@@ -71,6 +77,7 @@ The primary users are remote Happy users, self-host operators, maintainers triag
 - Command/skill/compaction message parsing, taxonomy, and rendering tests.
 - Root scripts and CI jobs needed to enforce these contracts.
 - Delano planning artifacts and task breakdown for phased implementation.
+- Follow-up verification and implementation for items that source review classified as partial or missing.
 
 ### Out of Scope
 
@@ -93,6 +100,12 @@ The primary users are remote Happy users, self-host operators, maintainers triag
 - FR-010: Align README/privacy text and app/self-host analytics defaults.
 - FR-011: Replace ad hoc command wrapper parsing with a tolerant parser and message taxonomy.
 - FR-012: Add package-wide root scripts and CI jobs for unit, integration, security, parser, daemon, and self-host compatibility checks.
+- FR-013: Add end-to-end or scripted integration evidence for desktop-to-mobile, mobile-to-desktop, abort-to-new-dialog, daemon restart, and detached multi-session flows.
+- FR-014: Remove or configuration-gate legacy auth challenge fallback and reflect that posture in capabilities/docs.
+- FR-015: Ensure remote Socket.IO/WebSocket control honors common corporate proxy environment variables and bypass rules.
+- FR-016: Add a real model catalog contract for app/server/CLI model availability.
+- FR-017: Track and close mobile UX gaps that remained outside the first safety pass.
+- FR-018: Automate routine compatibility matrix evidence instead of relying only on manual slow integration.
 
 ## Non-Functional Requirements
 
@@ -154,6 +167,9 @@ Probe skipped for planning. The attached review is based on public source review
 - Exact current repro state for reported handoff, tmux, and remote-session sync failures.
 - Exact analytics defaults per build target and deployment path.
 - Full compatibility matrix expected by current self-host users.
+- Minimum supported legacy-auth migration window.
+- Whether model catalog should be server-owned, CLI-owned, or provider-owned per session.
+- Whether WebSocket proxy support can be covered fully by local harnesses or needs manual enterprise-network validation.
 
 ## Dependencies
 
