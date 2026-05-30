@@ -831,6 +831,85 @@ describe('ApiSessionClient v3 messages API migration', () => {
         expect(mockAxiosGet.mock.calls[0][1].params.after_seq).toBe(1);
     });
 
+    it('reconciles mobile-sent messages back into the desktop session after a seq gap', async () => {
+        const client = new ApiSessionClient('fake-token', session);
+        const onUserMessage = vi.fn();
+        client.onUserMessage(onUserMessage);
+        (client as any).lastSeq = 1;
+
+        const mobileMessage = {
+            role: 'user',
+            content: { type: 'text', text: 'mobile follow-up' }
+        };
+        const agentMessage = {
+            role: 'agent',
+            content: { type: 'event', data: { type: 'ready' } }
+        };
+
+        mockAxiosGet.mockResolvedValueOnce({
+            data: {
+                messages: [
+                    {
+                        id: 'msg-2',
+                        seq: 2,
+                        content: { t: 'encrypted', c: encryptContent(session, mobileMessage) },
+                        localId: null,
+                        createdAt: 2000,
+                        updatedAt: 2000
+                    },
+                    {
+                        id: 'msg-3',
+                        seq: 3,
+                        content: { t: 'encrypted', c: encryptContent(session, agentMessage) },
+                        localId: null,
+                        createdAt: 3000,
+                        updatedAt: 3000
+                    }
+                ],
+                hasMore: false
+            }
+        });
+
+        emitSocketEvent('update', createNewMessageUpdate(3, encryptContent(session, agentMessage)));
+
+        await waitForCheck(() => {
+            expect(onUserMessage).toHaveBeenCalledWith(mobileMessage);
+            expect((client as any).lastSeq).toBe(3);
+        });
+
+        await waitForCheck(() => {
+            expect(mockAxiosPost).toHaveBeenCalled();
+        });
+
+        const lifecycleEvents = mockAxiosPost.mock.calls
+            .flatMap((call) => call[1].messages as Array<{ content: string }>)
+            .map((message) => decrypt(
+                session.encryptionKey,
+                session.encryptionVariant,
+                decodeBase64(message.content)
+            ))
+            .map((message: any) => message.content?.data)
+            .filter((event: any) => event?.type === 'lifecycle');
+
+        expect(lifecycleEvents).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                event: expect.objectContaining({
+                    type: 'recovering',
+                    reason: 'seq-gap',
+                    seq: 3,
+                    lastAppliedSeq: 1
+                })
+            }),
+            expect.objectContaining({
+                event: expect.objectContaining({
+                    type: 'recovered',
+                    reason: 'seq-gap',
+                    lastAppliedSeq: 3
+                })
+            })
+        ]));
+    });
+
     it('invalidates receive sync on first message when lastSeq is 0', async () => {
         const client = new ApiSessionClient('fake-token', session);
 
