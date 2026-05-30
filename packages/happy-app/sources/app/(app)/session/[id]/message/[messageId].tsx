@@ -43,6 +43,11 @@ export default React.memo(() => {
         if (sessionId) {
             sync.onSessionVisible(sessionId);
         }
+        return () => {
+            if (sessionId) {
+                sync.onSessionHidden(sessionId);
+            }
+        };
     }, [sessionId]);
     
     // Navigate back if message doesn't exist after messages are loaded

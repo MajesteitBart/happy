@@ -161,13 +161,14 @@ const ChatListInternal = React.memo((props: {
     // scrollToOffset is needed (and running both produces a fight that drags
     // the user's viewport when reading older messages mid-stream).
     const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+        sync.onSessionScrollActivity(props.sessionId);
         const offsetY = e.nativeEvent.contentOffset.y;
         const next = offsetY > SCROLL_THRESHOLD;
         if (next !== showScrollButtonRef.current) {
             showScrollButtonRef.current = next;
             setShowScrollButton(next);
         }
-    }, []);
+    }, [props.sessionId]);
 
     const scrollToBottom = useCallback(() => {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });

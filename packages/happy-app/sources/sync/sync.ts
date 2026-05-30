@@ -58,6 +58,12 @@ import { Modal } from '@/modal';
 import { t } from '@/text';
 import { refreshServerCapabilities, requireV3MessageCapabilities, ServerCompatibilityError } from './apiCapabilities';
 import { syncLoadMetrics, syncLoadNowMs, type SyncLoadOperation } from './syncLoadMetrics';
+import {
+    getOlderMessagesPrefetchDelayMs,
+    OLDER_MESSAGES_PREFETCH_BATCH_PAGES,
+    OLDER_MESSAGES_PREFETCH_INTERACTION_BACKOFF_MS,
+    shouldContinueOlderMessagesPrefetch,
+} from './syncPrefetchPolicy';
 
 type V3GetSessionMessagesResponse = {
     messages: ApiMessage[];
@@ -79,6 +85,12 @@ type V3PostSessionMessagesResponse = {
         createdAt: number;
         updatedAt: number;
     }>;
+};
+
+type OlderMessagesBatchOptions = {
+    maxPages: number;
+    showLoading?: boolean;
+    signal?: AbortSignal;
 };
 
 type OutboxMessage = {
@@ -104,6 +116,9 @@ class Sync {
     private messagesSync = new Map<string, InvalidateSync>();
     private sendSync = new Map<string, InvalidateSync>();
     private sendAbortControllers = new Map<string, AbortController>();
+    private visibleSessionCounts = new Map<string, number>();
+    private olderMessagesPrefetchControllers = new Map<string, AbortController>();
+    private olderMessagesPrefetchInteractionUntil = new Map<string, number>();
     private sessionLastSeq = new Map<string, number>();
     // Lowest seq value we have already fetched and applied for a session.
     // Used as the cursor for backward pagination when the user scrolls up to
@@ -281,8 +296,13 @@ class Sync {
 
 
     onSessionVisible = (sessionId: string) => {
-        this.getMessagesSync(sessionId).invalidate();
+        this.visibleSessionCounts.set(sessionId, (this.visibleSessionCounts.get(sessionId) ?? 0) + 1);
+        this.refreshSessionData(sessionId);
+        this.startOlderMessagesPrefetch(sessionId);
+    }
 
+    private refreshSessionData = (sessionId: string) => {
+        this.getMessagesSync(sessionId).invalidate();
         // Also invalidate git status sync for this session
         gitStatusSync.getSync(sessionId).invalidate();
 
@@ -291,6 +311,24 @@ class Sync {
         if (session) {
             voiceHooks.onSessionFocus(sessionId, session.metadata || undefined);
         }
+    }
+
+    onSessionHidden = (sessionId: string) => {
+        const nextCount = (this.visibleSessionCounts.get(sessionId) ?? 0) - 1;
+        if (nextCount > 0) {
+            this.visibleSessionCounts.set(sessionId, nextCount);
+            return;
+        }
+        this.visibleSessionCounts.delete(sessionId);
+        this.cancelOlderMessagesPrefetch(sessionId);
+        this.olderMessagesPrefetchInteractionUntil.delete(sessionId);
+    }
+
+    onSessionScrollActivity = (sessionId: string) => {
+        this.olderMessagesPrefetchInteractionUntil.set(
+            sessionId,
+            syncLoadNowMs() + OLDER_MESSAGES_PREFETCH_INTERACTION_BACKOFF_MS
+        );
     }
 
     private getMessagesSync(sessionId: string): InvalidateSync {
@@ -1870,50 +1908,89 @@ class Sync {
             log.log(`💬 fetchMessages completed for session ${sessionId}`);
 
             if (isInitialLoad) {
-                // Fire-and-forget. The chat is interactive at this point;
-                // background pages stream in without blocking either the
-                // surrounding lock or the UI. loadOlderMessages takes the
-                // same lock internally, so the loop naturally serialises
-                // with on-scroll triggers and live socket updates.
-                void this.prefetchOlderMessagesInBackground(sessionId);
+                this.startOlderMessagesPrefetch(sessionId);
             }
         });
     }
 
-    private prefetchOlderMessagesInBackground = async (sessionId: string) => {
-        const SLEEP_BETWEEN_PAGES_MS = 250;
-        // While loadOlderMessages handles the actual work, this loop is what
-        // keeps it going without user input. We keep stepping until either:
-        //   - the server says there is no more older history, or
-        //   - the session is no longer present in the store (user navigated
-        //     away and the session was unloaded), or
-        //   - we hit seq = 1 (the very first message), or
-        //   - the encryption key is gone (logged out).
-        // The loop yields between pages to keep the UI thread responsive
-        // and to spread out server load.
+    private startOlderMessagesPrefetch = (sessionId: string) => {
+        if (!this.isSessionVisible(sessionId)) {
+            return;
+        }
+        const sessionMessages = storage.getState().sessionMessages[sessionId];
+        if (!sessionMessages?.hasMoreOlder) {
+            return;
+        }
+
+        this.cancelOlderMessagesPrefetch(sessionId);
+        const controller = new AbortController();
+        this.olderMessagesPrefetchControllers.set(sessionId, controller);
+        void this.prefetchOlderMessagesInBackground(sessionId, controller.signal);
+    }
+
+    private cancelOlderMessagesPrefetch = (sessionId: string) => {
+        const controller = this.olderMessagesPrefetchControllers.get(sessionId);
+        if (controller) {
+            controller.abort();
+            this.olderMessagesPrefetchControllers.delete(sessionId);
+        }
+    }
+
+    private prefetchOlderMessagesInBackground = async (sessionId: string, signal: AbortSignal) => {
         while (true) {
             const sessionMessages = storage.getState().sessionMessages[sessionId];
-            if (!sessionMessages || !sessionMessages.hasMoreOlder) {
-                return;
-            }
-            if (!this.encryption.getSessionEncryption(sessionId)) {
-                return;
-            }
             const oldestSeq = this.sessionOldestSeq.get(sessionId);
-            if (oldestSeq === undefined || oldestSeq <= 1) {
+            if (!shouldContinueOlderMessagesPrefetch({
+                isAborted: signal.aborted,
+                isVisible: this.isSessionVisible(sessionId),
+                hasSessionMessages: !!sessionMessages,
+                hasMoreOlder: !!sessionMessages?.hasMoreOlder,
+                hasEncryption: !!this.encryption.getSessionEncryption(sessionId),
+                oldestSeq,
+            })) {
                 return;
             }
 
             try {
-                await this.loadOlderMessages(sessionId);
-                syncLoadMetrics.recordBackgroundPrefetchPage(sessionId);
+                const loadedPages = await this.loadOlderMessagesBatch(sessionId, {
+                    maxPages: OLDER_MESSAGES_PREFETCH_BATCH_PAGES,
+                    signal,
+                });
+                for (let i = 0; i < loadedPages; i++) {
+                    syncLoadMetrics.recordBackgroundPrefetchPage(sessionId);
+                }
             } catch (error) {
+                if (signal.aborted) {
+                    return;
+                }
                 log.log(`💬 prefetchOlderMessagesInBackground: error for ${sessionId}, stopping: ${String(error)}`);
                 return;
             }
 
-            await new Promise((resolve) => setTimeout(resolve, SLEEP_BETWEEN_PAGES_MS));
+            await this.waitForOlderMessagesPrefetchDelay(sessionId, signal);
         }
+    }
+
+    private waitForOlderMessagesPrefetchDelay = async (sessionId: string, signal: AbortSignal) => {
+        if (signal.aborted) {
+            return;
+        }
+        const delayMs = getOlderMessagesPrefetchDelayMs({
+            appState: this.appState,
+            nowMs: syncLoadNowMs(),
+            interactionUntilMs: this.olderMessagesPrefetchInteractionUntil.get(sessionId) ?? 0,
+        });
+        await new Promise<void>((resolve) => {
+            const timeout = setTimeout(resolve, delayMs);
+            signal.addEventListener('abort', () => {
+                clearTimeout(timeout);
+                resolve();
+            }, { once: true });
+        });
+    }
+
+    private isSessionVisible = (sessionId: string) => {
+        return (this.visibleSessionCounts.get(sessionId) ?? 0) > 0;
     }
 
     private fetchInitialLatestPage = async (
@@ -2014,56 +2091,97 @@ class Sync {
      * older-fetch is already in flight for this session.
      */
     loadOlderMessages = async (sessionId: string) => {
+        await this.loadOlderMessagesBatch(sessionId, { maxPages: 1, showLoading: true });
+    }
+
+    private loadOlderMessagesBatch = async (sessionId: string, options: OlderMessagesBatchOptions) => {
+        const signal = options.signal;
         const oldestSeq = this.sessionOldestSeq.get(sessionId);
-        if (oldestSeq === undefined || oldestSeq <= 1) {
-            return;
-        }
         const sessionMessages = storage.getState().sessionMessages[sessionId];
-        if (!sessionMessages || sessionMessages.isLoadingOlder || !sessionMessages.hasMoreOlder) {
-            return;
+        if (oldestSeq === undefined || oldestSeq <= 1 || !sessionMessages || !sessionMessages.hasMoreOlder) {
+            return 0;
+        }
+        if (options.showLoading && sessionMessages.isLoadingOlder) {
+            return 0;
         }
 
-        storage.getState().applyOlderMessagesLoading(sessionId, true);
+        if (options.showLoading) {
+            storage.getState().applyOlderMessagesLoading(sessionId, true);
+        }
         const lock = this.getSessionMessageLock(sessionId);
         try {
-            await lock.inLock(async () => {
+            return await lock.inLock(async () => {
                 const encryption = this.encryption.getSessionEncryption(sessionId);
                 if (!encryption) {
                     log.log(`💬 loadOlderMessages: encryption not ready for ${sessionId}`);
-                    return;
+                    return 0;
                 }
                 // Re-read the cursor inside the lock. A concurrent
                 // socket-pushed update or reload could have changed it.
-                const beforeSeq = this.sessionOldestSeq.get(sessionId);
-                if (beforeSeq === undefined || beforeSeq <= 1) {
-                    return;
+                let beforeSeq = this.sessionOldestSeq.get(sessionId);
+                if (beforeSeq === undefined || beforeSeq <= 1 || signal?.aborted) {
+                    return 0;
                 }
-                const fetchStartedAt = syncLoadNowMs();
-                const response = await apiSocket.request(
-                    `/v3/sessions/${sessionId}/messages?before_seq=${beforeSeq}&limit=100`
-                );
-                if (!response.ok) {
-                    throw new Error(`Failed to load older messages for ${sessionId}: ${response.status}`);
-                }
-                const data = await response.json() as V3GetSessionMessagesResponse;
-                const messages = Array.isArray(data.messages) ? data.messages : [];
-                this.recordFetchMetrics(sessionId, 'older', fetchStartedAt, messages.length);
-
-                await this.applyFetchedMessages(sessionId, encryption, messages);
 
                 let minSeq = beforeSeq;
-                for (const message of messages) {
-                    if (message.seq < minSeq) minSeq = message.seq;
+                let hasMore = false;
+                let loadedPages = 0;
+                const batch: ApiMessage[] = [];
+
+                for (let page = 0; page < options.maxPages; page++) {
+                    if (signal?.aborted) {
+                        return 0;
+                    }
+                    const fetchStartedAt = syncLoadNowMs();
+                    const response = await apiSocket.request(
+                        `/v3/sessions/${sessionId}/messages?before_seq=${beforeSeq}&limit=100`,
+                        signal ? { signal } : undefined
+                    );
+                    if (!response.ok) {
+                        throw new Error(`Failed to load older messages for ${sessionId}: ${response.status}`);
+                    }
+                    const data = await response.json() as V3GetSessionMessagesResponse;
+                    const messages = Array.isArray(data.messages) ? data.messages : [];
+                    this.recordFetchMetrics(sessionId, 'older', fetchStartedAt, messages.length);
+
+                    if (messages.length === 0) {
+                        hasMore = false;
+                        break;
+                    }
+
+                    loadedPages += 1;
+                    batch.push(...messages);
+                    for (const message of messages) {
+                        if (message.seq < minSeq) minSeq = message.seq;
+                    }
+
+                    hasMore = !!data.hasMore;
+                    if (minSeq >= beforeSeq) {
+                        hasMore = false;
+                        break;
+                    }
+                    if (!hasMore) {
+                        break;
+                    }
+                    beforeSeq = minSeq;
                 }
-                if (messages.length > 0) {
+
+                if (signal?.aborted) {
+                    return 0;
+                }
+                if (batch.length > 0) {
+                    await this.applyFetchedMessages(sessionId, encryption, batch);
                     this.sessionOldestSeq.set(sessionId, minSeq);
                 }
                 storage.getState().applyOlderMessagesPagination(sessionId, {
-                    hasMore: !!data.hasMore && messages.length > 0
+                    hasMore: hasMore && batch.length > 0
                 });
+                return loadedPages;
             });
         } finally {
-            storage.getState().applyOlderMessagesLoading(sessionId, false);
+            if (options.showLoading) {
+                storage.getState().applyOlderMessagesLoading(sessionId, false);
+            }
         }
     }
 
@@ -2214,8 +2332,9 @@ class Sync {
                 }
             }
 
-            // Ping session
-            this.onSessionVisible(updateData.body.sid);
+            // Ping session data without marking it as visible. Real visibility
+            // comes from SessionView and controls background prefetch lifetime.
+            this.refreshSessionData(updateData.body.sid);
 
         } else if (updateData.body.t === 'new-session') {
             log.log('🆕 New session update received');
@@ -2301,7 +2420,7 @@ class Sync {
                     const isNowControlledByUser = agentState?.controlledByUser;
                     if (!wasControlledByUser && isNowControlledByUser) {
                         log.log(`🔄 Control returned to mobile for session ${updateData.body.id}, re-fetching messages`);
-                        this.onSessionVisible(updateData.body.id);
+                        this.refreshSessionData(updateData.body.id);
                     }
                 }
             }

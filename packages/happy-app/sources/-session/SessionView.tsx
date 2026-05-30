@@ -640,6 +640,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
         gitStatusSync.getSync(sessionId);
 
         return () => {
+            sync.onSessionHidden(sessionId);
             // Clear viewing session on unmount
             const current = storage.getState().currentViewingSessionId;
             if (current === sessionId) {
