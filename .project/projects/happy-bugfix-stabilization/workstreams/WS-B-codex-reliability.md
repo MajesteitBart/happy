@@ -4,7 +4,7 @@ name: Codex Reliability
 status: active
 owner: Clark
 created: 2026-05-30T08:35:32Z
-updated: 2026-05-30T15:35:22Z
+updated: 2026-05-30T18:01:13Z
 operating_mode: scoped-change
 ---
 
