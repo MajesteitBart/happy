@@ -1,10 +1,10 @@
 ---
 id: WS-D
 name: Delano Quality Gates
-status: planned
+status: done
 owner: Clark
 created: 2026-05-30T08:35:32Z
-updated: 2026-05-30T08:35:32Z
+updated: 2026-05-30T17:57:02Z
 operating_mode: scoped-change
 ---
 
