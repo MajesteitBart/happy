@@ -16,6 +16,8 @@ probe_status: pending
 ## Executive Summary
 Happy should let mobile/web users attach useful context to a remote coding session, regardless of whether the connected terminal is Claude Code or Codex. The feature covers image and document attachments, live terminal-specific slash command suggestions, and Codex `$` skill autocomplete.
 
+Delivery is Codex-first. Existing Claude image behavior should be preserved, but new Claude document support is lower priority and does not block the first useful rollout.
+
 The implementation must use the active app/server/CLI runtime path. `packages/happy-wire/src/sessionProtocol.ts` is explicitly marked frozen/reference-only and is not production protocol, so it can inform compatibility checks but must not be treated as proof that the active product works.
 
 The riskiest areas are provider-specific input contracts, Codex sandbox access to decrypted temporary files, and avoiding stale/hardcoded command suggestions that imply a command exists when the connected terminal cannot actually run it.
@@ -39,6 +41,7 @@ The primary users are Happy mobile/web users who are controlling a desktop codin
 - Slash suggestions reflect only live terminal metadata. If the connected terminal reports no slash commands, `/` shows no suggestions.
 - Codex sessions expose native `$` skill suggestions from the connected Codex app-server skill registry.
 - Attachment feature graduation happens only after Claude and Codex E2E evidence exists.
+- Codex attachment and `$` skill support can graduate before Claude document support, as long as existing Claude image attachment behavior is not regressed.
 
 ## User Stories
 - US-001: As a Happy mobile user, I want to attach a screenshot to Claude Code or Codex so the agent can reason about visual UI state.
@@ -64,6 +67,7 @@ The primary users are Happy mobile/web users who are controlling a desktop codin
 - Live-only slash command autocomplete.
 - Native Codex `$` skill discovery, metadata, autocomplete, and invocation.
 - Focused app/CLI/server tests and E2E evidence before default-on rollout.
+- Codex-first implementation and rollout sequencing.
 
 ### Out of Scope
 - Server-side plaintext attachment inspection.
@@ -71,6 +75,7 @@ The primary users are Happy mobile/web users who are controlling a desktop codin
 - Static curated slash command fallback lists.
 - Shipping a Happy-only Codex skill registry unless native Codex skills are unavailable and the fallback is explicitly documented.
 - Treating frozen `happy-wire` protocol tests as production validation.
+- Making Claude document support a blocker for Codex rollout.
 
 ## Functional Requirements
 - The app must support choosing images and documents from native and web surfaces.

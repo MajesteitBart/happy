@@ -17,8 +17,9 @@ The attached flattened plan was repo-checked and corrected before task creation.
 - Keep the attachment workstream: the app does lose MIME metadata and gates attachments to Claude only.
 - Replace the Codex skill strategy: use native Codex app-server skill discovery/invocation first, not a Happy-only prompt-expansion registry.
 - Treat `packages/happy-wire/src/sessionProtocol.ts` as reference-only, not production validation.
-- Move `expImageUpload` default-on graduation to the final rollout task after Claude and Codex E2E evidence exists.
+- Move `expImageUpload` default-on graduation to a Codex-first rollout task after Codex E2E evidence exists.
 - Add explicit safety requirements for decrypted Codex temp files.
+- User priority update: Codex is the main target because Claude subscription usage is not the priority path. Claude image behavior should not regress, but Claude document support no longer blocks the first useful rollout.
 
 ## Technical Context
 Happy already has encrypted attachment blob transport and server upload/download routes. The active product path is app `sync.ts` file events plus CLI runner handling, not the frozen `happy-wire` session protocol.
@@ -32,7 +33,7 @@ Slash command metadata already flows from Claude SDK metadata into session metad
 - Server remains blind to plaintext content and does not store MIME-truth records.
 - Codex skills use native app-server skill APIs when available. Prompt expansion is only a documented fallback if native invocation cannot be verified.
 - `codexSkills` is a dedicated metadata field. Do not overload Claude `skills`.
-- Attachment feature graduation is evidence-gated by Claude and Codex E2E.
+- Attachment feature graduation is evidence-gated by Codex E2E first. Claude document support is a follow-up lane.
 
 ## Policy and Contract Checks
 - [x] `.project` remains the execution source of truth
@@ -58,7 +59,7 @@ Tasks T-001 and T-002 are required before implementation. If either provider con
 ## Workstream Design
 - WS-A Provider Capability Spikes: verify provider contracts and active Happy runtime paths.
 - WS-B Attachment UX and Wire Metadata: document picker, unified preview model, MIME metadata, and flavor gate.
-- WS-C Claude and Codex Attachment Delivery: provider-specific content conversion and Codex temp-file handoff.
+- WS-C Codex-first Attachment Delivery: Codex temp-file handoff is primary; Claude document conversion is lower priority and must preserve existing Claude image support.
 - WS-D Terminal Commands and Codex Skills: live slash metadata, native Codex `$` skills, and safe invocation.
 - WS-E Verification and Rollout: type/schema tests, E2E evidence, and feature graduation.
 
@@ -66,23 +67,25 @@ Tasks T-001 and T-002 are required before implementation. If either provider con
 - M1: Project contract complete and validation clean.
 - M2: Provider capability probes complete, with updated implementation notes.
 - M3: App can select and send MIME-preserving image/document file events to Claude/Codex sessions.
-- M4: Claude and Codex runners consume attachments correctly.
+- M4: Codex runner consumes image/document attachments correctly.
 - M5: Terminal-aware slash commands and Codex `$` autocomplete work from live metadata.
-- M6: E2E evidence captured; feature flag graduation decision made.
+- M6: Codex E2E evidence captured; Codex-first feature flag graduation decision made.
+- M7: Claude document support and Claude E2E completed when it becomes useful, without blocking Codex rollout.
 
 ## Rollout Strategy
 - Keep the existing experimental flag off by default while building.
 - Land app metadata/UX separately from provider runtime delivery.
-- Verify Claude first because the image path already exists.
+- Preserve existing Claude image behavior but do not prioritize new Claude document delivery.
 - Isolate Codex attachment temp-file work in its own change.
-- Enable default-on only after E2E proves both supported agent paths.
+- Enable default-on only after E2E proves the Codex path works and the app still handles existing Claude image attachments safely.
 
 ## Test Strategy
 - Unit tests for attachment preview/upload metadata and file-event MIME emission.
-- CLI tests for Claude content-block conversion and Codex input item building.
+- CLI tests for Codex input item building and temp-file cleanup first; Claude document conversion tests can follow later.
 - CLI tests for Codex skill discovery/invocation parsing, especially `$` in shell variables, paths, and code.
 - App tests for live-only slash suggestions, `$` suggestions, and empty autocomplete behavior.
-- E2E/manual harness evidence for Claude image/document delivery and Codex image/document/skill behavior.
+- E2E/manual harness evidence for Codex image/document/skill behavior before rollout.
+- Claude regression evidence should cover existing image behavior before default-on; Claude document E2E is lower priority.
 
 ## Rollback Strategy
 - App picker/preview changes can remain behind the experimental flag.
@@ -95,4 +98,4 @@ Tasks T-001 and T-002 are required before implementation. If either provider con
 - Claude SDK document block support may differ from assumptions.
 - Mobile document picker behavior may vary between native and web.
 - Decrypted temp-file cleanup must be robust across aborts, crashes, and session exits.
-- Default-on rollout could expose provider caveats too early if E2E is shallow.
+- Default-on rollout could expose Codex provider caveats too early if E2E is shallow.

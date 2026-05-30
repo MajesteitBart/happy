@@ -11,7 +11,7 @@ github_pr:
 depends_on: [T-001, T-004]
 conflicts_with: []
 parallel: false
-priority: high
+priority: low
 estimate: M
 story_id: 
 acceptance_criteria_ids: []
@@ -21,7 +21,7 @@ acceptance_criteria_ids: []
 
 ## Description
 
-Extend the Claude launcher attachment content-block builder from image-only to verified document-capable content blocks.
+Lower-priority follow-up. Extend the Claude launcher attachment content-block builder from image-only to verified document-capable content blocks after the Codex path is working.
 
 ## Acceptance Criteria
 
@@ -35,6 +35,8 @@ Extend the Claude launcher attachment content-block builder from image-only to v
 - Acceptance criteria: none
 
 ## Technical Notes
+
+Codex is the priority provider for this project. This task should preserve existing Claude image behavior but does not block Codex attachment rollout.
 
 ## Definition of Done
 - [ ] Implementation complete

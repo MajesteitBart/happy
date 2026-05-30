@@ -11,7 +11,7 @@ github_pr:
 depends_on: [T-003, T-004, T-006]
 conflicts_with: []
 parallel: false
-priority: high
+priority: low
 estimate: M
 story_id: 
 acceptance_criteria_ids: []
@@ -21,7 +21,7 @@ acceptance_criteria_ids: []
 
 ## Description
 
-Verify a real or local-harness Claude session can receive image, PDF, and text/code attachments from the app path.
+Lower-priority follow-up. Verify a real or local-harness Claude session can receive image, PDF, and text/code attachments from the app path once Codex-first rollout is handled.
 
 ## Acceptance Criteria
 
@@ -35,6 +35,8 @@ Verify a real or local-harness Claude session can receive image, PDF, and text/c
 - Acceptance criteria: none
 
 ## Technical Notes
+
+This is no longer a blocker for Codex-first default-on. Existing Claude image behavior should still be covered before broad rollout, but Claude document support can follow later.
 
 ## Definition of Done
 - [ ] Implementation complete
