@@ -1,9 +1,9 @@
 ---
 name: Happy Safety and UX Stabilization
-status: active
+status: done
 lead: Clark
 created: 2026-05-30T09:49:30Z
-updated: 2026-05-30T15:05:21Z
+updated: 2026-05-30T17:09:16Z
 linear_project_id:
 risk_level: high
 spec_status_at_plan_time: planned
