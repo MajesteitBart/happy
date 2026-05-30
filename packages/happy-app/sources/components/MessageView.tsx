@@ -127,6 +127,9 @@ function UserTextBlock(props: {
       <View style={styles.userMessageContainer}>
         <View style={styles.commandChip}>
           <Text style={styles.commandChipText}>/{parsed.commandName}</Text>
+          {parsed.args ? (
+            <Text style={styles.commandChipArgs} numberOfLines={2}>{parsed.args}</Text>
+          ) : null}
         </View>
       </View>
     );
@@ -271,6 +274,12 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.input.text,
     fontSize: 13,
     fontFamily: 'monospace',
+  },
+  commandChipArgs: {
+    color: theme.colors.input.text,
+    fontSize: 12,
+    marginTop: 2,
+    opacity: 0.8,
   },
   agentMessageContainer: {
     marginHorizontal: 16,
