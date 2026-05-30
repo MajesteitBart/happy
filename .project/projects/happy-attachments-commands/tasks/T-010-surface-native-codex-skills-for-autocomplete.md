@@ -25,10 +25,10 @@ Query Codex native app-server skill APIs and expose names/descriptions in Happy 
 
 ## Acceptance Criteria
 
-- [ ] Codex runner populates a dedicated codexSkills metadata field from native skills/list or verified equivalent.
-- [ ] Claude sessions do not show $ autocomplete unless explicitly supported later.
-- [ ] App autocomplete prefixes add $ only for Codex sessions with skill metadata.
-- [ ] Skill suggestion rows render name and description and selection inserts the intended invocation token.
+- [x] Codex runner populates a dedicated codexSkills metadata field from native skills/list or verified equivalent.
+- [x] Claude sessions do not show $ autocomplete unless explicitly supported later.
+- [x] App autocomplete prefixes add $ only for Codex sessions with skill metadata.
+- [x] Skill suggestion rows render name and description and selection inserts the intended invocation token.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Query Codex native app-server skill APIs and expose names/descriptions in Happy 
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

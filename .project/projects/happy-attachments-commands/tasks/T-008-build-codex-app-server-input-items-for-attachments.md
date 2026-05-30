@@ -25,10 +25,10 @@ Send image attachments to Codex as native localImage/image items and expose docu
 
 ## Acceptance Criteria
 
-- [ ] Images are sent before final user text as Codex-supported image/localImage input items.
-- [ ] Documents are written to a Happy-managed hidden temp directory with restrictive permissions and cleanup on turn/session exit.
-- [ ] Document prompts include filename, MIME type, and readable path without exposing private system paths unnecessarily in persisted messages.
-- [ ] Sandbox/readability is verified for workspace-write, read-only, and danger-full-access where applicable.
+- [x] Images are sent before final user text as Codex-supported image/localImage input items.
+- [x] Documents are written to a Happy-managed hidden temp directory with restrictive permissions and cleanup on turn/session exit.
+- [x] Document prompts include filename, MIME type, and readable path without exposing private system paths unnecessarily in persisted messages.
+- [x] Sandbox/readability is verified for workspace-write, read-only, and danger-full-access where applicable.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Send image attachments to Codex as native localImage/image items and expose docu
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

@@ -25,10 +25,10 @@ Make slash autocomplete reflect the connected terminal session instead of hardco
 
 ## Acceptance Criteria
 
-- [ ] Claude sessions show commands only from metadata.slashCommands, filtered/enriched locally.
-- [ ] Codex sessions show no slash suggestions unless Codex exposes live slash command metadata in the future.
-- [ ] Empty command sets do not render an empty autocomplete popover.
-- [ ] Tests cover no metadata, empty slashCommands, Claude slashCommands, and ignored command filtering.
+- [x] Claude sessions show commands only from metadata.slashCommands, filtered/enriched locally.
+- [x] Codex sessions show no slash suggestions unless Codex exposes live slash command metadata in the future.
+- [x] Empty command sets do not render an empty autocomplete popover.
+- [x] Tests cover no metadata, empty slashCommands, Claude slashCommands, and ignored command filtering.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Make slash autocomplete reflect the connected terminal session instead of hardco
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

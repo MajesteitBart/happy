@@ -25,10 +25,10 @@ Add focused tests for new attachment and metadata types on the active app/CLI/se
 
 ## Acceptance Criteria
 
-- [ ] App storage metadata accepts codexSkills without overloading Claude skills.
-- [ ] CLI API metadata types include codexSkills names/descriptions only.
-- [ ] Attachment MIME metadata and document previews have unit coverage.
-- [ ] Tests avoid relying on frozen happy-wire sessionProtocol as production proof.
+- [x] App storage metadata accepts codexSkills without overloading Claude skills.
+- [x] CLI API metadata types include codexSkills names/descriptions only.
+- [x] Attachment MIME metadata and document previews have unit coverage.
+- [x] Tests avoid relying on frozen happy-wire sessionProtocol as production proof.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Add focused tests for new attachment and metadata types on the active app/CLI/se
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

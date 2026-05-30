@@ -25,10 +25,10 @@ Thread attachment mimeType from preview through UploadedAttachment and outgoing 
 
 ## Acceptance Criteria
 
-- [ ] UploadedAttachment includes mimeType and sync.ts emits file-event mimeType for images and documents.
-- [ ] Image dimensions/thumbhash are emitted only for real images; documents send no image metadata.
-- [ ] Server upload routes remain content-opaque and do not need decrypted MIME awareness.
-- [ ] Tests cover PDF/text/code file-event metadata on the active path.
+- [x] UploadedAttachment includes mimeType and sync.ts emits file-event mimeType for images and documents.
+- [x] Image dimensions/thumbhash are emitted only for real images; documents send no image metadata.
+- [x] Server upload routes remain content-opaque and do not need decrypted MIME awareness.
+- [x] Tests cover PDF/text/code file-event metadata on the active path.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Thread attachment mimeType from preview through UploadedAttachment and outgoing 
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

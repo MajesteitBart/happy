@@ -25,9 +25,9 @@ Replace the Claude-only app gate with normalized flavor support for Claude and C
 
 ## Acceptance Criteria
 
-- [ ] Claude and Codex sessions can enqueue attachments from the app.
-- [ ] Gemini/OpenClaw/unknown unsupported paths still show a specific recovery message.
-- [ ] The feature flag remains opt-in until E2E verification is complete.
+- [x] Claude and Codex sessions can enqueue attachments from the app.
+- [x] Gemini/OpenClaw/unknown unsupported paths still show a specific recovery message.
+- [x] The feature flag remains opt-in until E2E verification is complete.
 
 ## Traceability
 - Story: none
@@ -36,10 +36,10 @@ Replace the Claude-only app gate with normalized flavor support for Claude and C
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

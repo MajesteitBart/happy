@@ -25,10 +25,10 @@ Add a document picker path and normalize selected images/documents into one atta
 
 ## Acceptance Criteria
 
-- [ ] Users can add photos/images and files from the composer affordance without losing current image behavior.
-- [ ] Document chips render filename, size/type affordance, remove action, and upload/error state without broken thumbnails.
-- [ ] Native and web URI byte reads are covered for image picker and document picker outputs.
-- [ ] Existing file count and max-size guards apply consistently.
+- [x] Users can add photos/images and files from the composer affordance without losing current image behavior.
+- [x] Document chips render filename, size/type affordance, remove action, and upload/error state without broken thumbnails.
+- [x] Native and web URI byte reads are covered for image picker and document picker outputs.
+- [x] Existing file count and max-size guards apply consistently.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Add a document picker path and normalize selected images/documents into one atta
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

@@ -25,10 +25,10 @@ Mirror the Claude attachment drain path in the Codex runner so file events are c
 
 ## Acceptance Criteria
 
-- [ ] runCodex registers file-event downloads and tracks them with existing session attachment helpers.
-- [ ] Message queue batches include attachments without races between file events and text messages.
-- [ ] Abort/retry behavior does not leak stale attachments into later turns.
-- [ ] Tests or fixture coverage prove attachment ownership per user message.
+- [x] runCodex registers file-event downloads and tracks them with existing session attachment helpers.
+- [x] Message queue batches include attachments without races between file events and text messages.
+- [x] Abort/retry behavior does not leak stale attachments into later turns.
+- [x] Tests or fixture coverage prove attachment ownership per user message.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Mirror the Claude attachment drain path in the Codex runner so file events are c
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 

@@ -25,10 +25,10 @@ Submit selected $ skills through the native Codex skill input contract when avai
 
 ## Acceptance Criteria
 
-- [ ] Known selected skills are sent as native skill input items or verified app-server equivalent.
-- [ ] Unknown  and $ inside paths, shell variables, and code remain untouched.
-- [ ] Fallback prompt expansion, if needed, is guarded by deterministic standalone-token parsing and documented as temporary.
-- [ ] Tests cover selected skill, unknown token, shell variable, path, and markdown/code examples.
+- [x] Known selected skills are sent as native skill input items or verified app-server equivalent.
+- [x] Unknown  and $ inside paths, shell variables, and code remain untouched.
+- [x] Fallback prompt expansion, if needed, is guarded by deterministic standalone-token parsing and documented as temporary.
+- [x] Tests cover selected skill, unknown token, shell variable, path, and markdown/code examples.
 
 ## Traceability
 - Story: none
@@ -37,10 +37,10 @@ Submit selected $ skills through the native Codex skill input contract when avai
 ## Technical Notes
 
 ## Definition of Done
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Review complete
-- [ ] Docs updated
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Review complete
+- [x] Docs updated
 
 ## Evidence Log
 
