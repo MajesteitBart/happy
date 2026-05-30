@@ -1,10 +1,10 @@
 ---
 id: T-004
 name: Preserve MIME metadata through upload and file events
-status: planned
+status: done
 workstream: WS-B
 created: 2026-05-30T19:58:38Z
-updated: 2026-05-30T19:58:38Z
+updated: 2026-05-30T20:44:23Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -43,4 +43,8 @@ Thread attachment mimeType from preview through UploadedAttachment and outgoing 
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T20:44:23Z: Added mimeType to UploadedAttachment, preserved MIME in outgoing app file events, updated the app raw session schema/normalization to retain MIME metadata, and kept image metadata conditional on width/height. Verified with pnpm --filter happy-app typecheck and pnpm --filter happy-app exec vitest run sources/utils/pasteImages.web.test.ts sources/sync/typesRaw.spec.ts.
+
+- 2026-05-30T20:44:13Z: Threading MIME metadata through the app upload and file-event path.
 - 2026-05-30T19:58:38Z: Created from .project/templates/task.md by `delano task add`.

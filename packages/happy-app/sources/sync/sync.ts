@@ -57,6 +57,7 @@ import { readFileBytes } from '@/utils/readFileBytes';
 import { Modal } from '@/modal';
 import { t } from '@/text';
 import { refreshServerCapabilities, requireV3MessageCapabilities, ServerCompatibilityError } from './apiCapabilities';
+import { normalizeAgentKey } from './agentDefaults';
 import { syncLoadMetrics, syncLoadNowMs, type SyncLoadOperation } from './syncLoadMetrics';
 import {
     getOlderMessagesPrefetchDelayMs,
@@ -533,7 +534,7 @@ class Sync {
     }
 
     /**
-     * Upload image attachments for a session: read bytes → encrypt → upload to server.
+     * Upload attachments for a session: read bytes, encrypt, then upload to server.
      * Returns UploadedAttachment records to embed as file events before the text message.
      * Failures are logged and skipped rather than aborting the whole message send.
      */
@@ -570,6 +571,7 @@ class Sync {
                 uploaded.push({
                     ref,
                     name: attachment.name,
+                    mimeType: attachment.mimeType,
                     size: attachment.size,
                     width: attachment.width,
                     height: attachment.height,
@@ -626,12 +628,11 @@ class Sync {
         const modeMeta = resolveMessageModeMeta(session, storage.getState().settings);
         const { displayText, source = 'chat', attachments } = options ?? {};
 
-        // Image attachments are wired into the Claude pipeline only; Codex /
-        // Gemini / OpenClaw runners read message.content.text and ignore
-        // file events, so dropping attachments silently would leave the user
-        // wondering why the image was skipped. Warn and send text only.
+        // Attachments are currently handled by Claude and Codex runners. Older
+        // sessions without a flavor are treated as Claude for compatibility.
         const flavor = session.metadata?.flavor;
-        const supportsAttachments = !flavor || flavor === 'claude';
+        const agentKey = normalizeAgentKey(flavor);
+        const supportsAttachments = !flavor || flavor === 'claude' || agentKey === 'codex';
         const effectiveAttachments = supportsAttachments ? attachments : undefined;
 
         if (attachments && attachments.length > 0 && !supportsAttachments) {
@@ -674,6 +675,7 @@ class Sync {
                                     t: 'file',
                                     ref: att.ref,
                                     name: att.name,
+                                    mimeType: att.mimeType,
                                     size: att.size,
                                     // Include image metadata when we have dimensions; thumbhash is
                                     // optional. The native iOS picker can't generate a thumbhash

@@ -32,6 +32,12 @@ export function getImagesFromDrop(event: DragEvent): File[] {
     return images;
 }
 
+export function getFilesFromDrop(event: DragEvent): File[] {
+    const files = event.dataTransfer?.files;
+    if (!files) return [];
+    return Array.from(files);
+}
+
 export async function fileToAttachmentPreview(
     file: File,
     generateThumbhash: (uri: string, w: number, h: number) => Promise<string | undefined>,
@@ -46,6 +52,18 @@ export async function fileToAttachmentPreview(
 } | null> {
     try {
         const uri = URL.createObjectURL(file);
+        const mimeType = file.type || 'application/octet-stream';
+
+        if (!mimeType.startsWith('image/')) {
+            return {
+                uri,
+                width: 0,
+                height: 0,
+                size: file.size,
+                name: file.name || `file_${Date.now()}`,
+                mimeType,
+            };
+        }
 
         // Get dimensions by loading as an Image element
         const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
@@ -72,7 +90,7 @@ export async function fileToAttachmentPreview(
             height,
             size: file.size,
             name: file.name || `paste_${Date.now()}.png`,
-            mimeType: file.type || 'image/png',
+            mimeType,
             thumbhash,
         };
     } catch {

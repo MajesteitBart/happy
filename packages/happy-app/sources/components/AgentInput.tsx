@@ -86,11 +86,12 @@ interface AgentInputProps {
     isSending?: boolean;
     minHeight?: number;
     zenMode?: boolean;
-    /** Image attachments waiting to be sent (expImageUpload feature). */
-    selectedImages?: AttachmentPreview[];
+    /** Attachments waiting to be sent (expImageUpload feature). */
+    selectedAttachments?: AttachmentPreview[];
     onPickImages?: () => void;
-    onRemoveImage?: (id: string) => void;
-    onAddImages?: (images: AttachmentPreview[]) => void;
+    onPickDocuments?: () => void;
+    onRemoveAttachment?: (id: string) => void;
+    onAddAttachments?: (attachments: AttachmentPreview[]) => void;
 }
 
 const MAX_CONTEXT_SIZE = 190000;
@@ -553,10 +554,10 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     // updated via startTransition from the keystroke handler so a busy reducer
     // never blocks the next character from landing in the textarea.
     const [hasText, setHasText] = React.useState(() => props.initialValue.trim().length > 0);
-    const hasImages = (props.selectedImages?.length ?? 0) > 0;
+    const hasAttachments = (props.selectedAttachments?.length ?? 0) > 0;
     const canPressSendButton = !props.isSending
         && !props.isSendDisabled
-        && (isSendBlocked ? (hasText || hasImages) : (hasText || hasImages || !!props.onMicPress));
+        && (isSendBlocked ? (hasText || hasAttachments) : (hasText || hasAttachments || !!props.onMicPress));
 
     // Check if this is a Codex, Gemini, or OpenClaw session
     // Use metadata.flavor for existing sessions, agentType prop for new sessions
@@ -614,9 +615,9 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     React.useImperativeHandle(ref, () => inputRef.current!, []);
 
     // Web paste/drag — intercept image pastes and file drops for the
-    // attachment feature. Both handlers funnel through props.onAddImages.
+    // attachment feature. Both handlers funnel through props.onAddAttachments.
     React.useEffect(() => {
-        if (Platform.OS !== 'web' || !props.onAddImages) return;
+        if (Platform.OS !== 'web' || !props.onAddAttachments) return;
 
         const handlePaste = async (e: ClipboardEvent) => {
             // Only handle pastes targeted at a focused text-editable element.
@@ -637,7 +638,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 files.map((f) => fileToAttachmentPreview(f, generateThumbhash))
             )).filter(Boolean) as Omit<AttachmentPreview, 'id'>[];
             if (previews.length) {
-                props.onAddImages!(previews.map((p) => ({
+                props.onAddAttachments!(previews.map((p) => ({
                     ...p,
                     id: `paste_${Date.now()}_${Math.random().toString(36).slice(2)}`,
                 })));
@@ -666,14 +667,14 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         const handleDrop = async (e: DragEvent) => {
             if (!isFileDrag(e)) return;
             e.preventDefault();
-            const { getImagesFromDrop, fileToAttachmentPreview } = await import('@/utils/pasteImages.web');
-            const files = getImagesFromDrop(e);
+            const { getFilesFromDrop, fileToAttachmentPreview } = await import('@/utils/pasteImages.web');
+            const files = getFilesFromDrop(e);
             if (!files.length) return;
             const previews = (await Promise.all(
                 files.map((f) => fileToAttachmentPreview(f, generateThumbhash))
             )).filter(Boolean) as Omit<AttachmentPreview, 'id'>[];
             if (previews.length) {
-                props.onAddImages!(previews.map((p) => ({
+                props.onAddAttachments!(previews.map((p) => ({
                     ...p,
                     id: `drop_${Date.now()}_${Math.random().toString(36).slice(2)}`,
                 })));
@@ -688,7 +689,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
             document.removeEventListener('dragover', handleDragOver);
             document.removeEventListener('drop', handleDrop);
         };
-    }, [props.onAddImages]);
+    }, [props.onAddAttachments]);
 
     // Autocomplete state — text + selection. Updated via startTransition so
     // typing renders the character immediately and the autocomplete pipeline
@@ -814,12 +815,12 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         hapticsLight();
         // Live read avoids stalling behind the transitioned `hasText`.
         const liveHasText = (inputRef.current?.getText() ?? '').trim().length > 0;
-        if (liveHasText || hasImages) {
+        if (liveHasText || hasAttachments) {
             props.onSend();
         } else {
             props.onMicPress?.();
         }
-    }, [handleBlockedSendAttempt, hasImages, isSendBlocked, props.isSendDisabled, props.isSending, props.onSend, props.onMicPress]);
+    }, [handleBlockedSendAttempt, hasAttachments, isSendBlocked, props.isSendDisabled, props.isSending, props.onSend, props.onMicPress]);
 
     // Handle keyboard navigation
     const handleKeyPress = React.useCallback((event: KeyPressEvent): boolean => {
@@ -1197,10 +1198,10 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 <Shaker ref={sendBlockShakerRef}>
                 <View style={styles.unifiedPanel}>
                     {/* Attachment preview strip */}
-                    {props.selectedImages && props.selectedImages.length > 0 && (
+                    {props.selectedAttachments && props.selectedAttachments.length > 0 && (
                         <AgentInputAttachmentStrip
-                            images={props.selectedImages}
-                            onRemove={props.onRemoveImage ?? (() => {})}
+                            attachments={props.selectedAttachments}
+                            onRemove={props.onRemoveAttachment ?? (() => {})}
                         />
                     )}
                     {/* Input field */}
@@ -1323,7 +1324,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                 {/* Git Status Badge */}
                                 <GitStatusButton sessionId={props.sessionId} onPress={props.onFileViewerPress} />
 
-                                {/* Image picker button (expImageUpload) */}
+                                {/* Attachment picker buttons (expImageUpload) */}
                                 {props.onPickImages && (
                                     <Pressable
                                         onPress={props.onPickImages}
@@ -1342,7 +1343,31 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                                         <Ionicons
                                             name="image-outline"
                                             size={16}
-                                            color={(props.selectedImages?.length ?? 0) > 0
+                                            color={(props.selectedAttachments?.some((att) => att.mimeType.startsWith('image/')) ?? false)
+                                                ? theme.colors.radio.active
+                                                : theme.colors.button.secondary.tint}
+                                        />
+                                    </Pressable>
+                                )}
+                                {props.onPickDocuments && (
+                                    <Pressable
+                                        onPress={props.onPickDocuments}
+                                        hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
+                                        style={(p) => ({
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            borderRadius: Platform.select({ default: 16, android: 20 }),
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 6,
+                                            justifyContent: 'center',
+                                            height: 32,
+                                            opacity: p.pressed ? 0.7 : 1,
+                                        })}
+                                    >
+                                        <Ionicons
+                                            name="document-attach-outline"
+                                            size={16}
+                                            color={(props.selectedAttachments?.some((att) => !att.mimeType.startsWith('image/')) ?? false)
                                                 ? theme.colors.radio.active
                                                 : theme.colors.button.secondary.tint}
                                         />

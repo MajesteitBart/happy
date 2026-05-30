@@ -1,10 +1,10 @@
 ---
 id: T-003
 name: Unify image and document selection in the app
-status: planned
+status: done
 workstream: WS-B
 created: 2026-05-30T19:58:38Z
-updated: 2026-05-30T19:58:38Z
+updated: 2026-05-30T20:44:13Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -43,4 +43,8 @@ Add a document picker path and normalize selected images/documents into one atta
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T20:44:13Z: Implemented shared app attachment picker for images and documents, document file chips, web file-drop document previews, existing count/size guards for both picker paths, and legacy useImagePicker compatibility. Verified with pnpm --filter happy-app typecheck and pnpm --filter happy-app exec vitest run sources/utils/pasteImages.web.test.ts sources/sync/typesRaw.spec.ts.
+
+- 2026-05-30T20:35:17Z: Starting Codex-first attachment implementation with shared app attachment groundwork.
 - 2026-05-30T19:58:38Z: Created from .project/templates/task.md by `delano task add`.

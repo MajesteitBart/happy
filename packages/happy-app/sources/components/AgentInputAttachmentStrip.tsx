@@ -1,10 +1,9 @@
 /**
- * Horizontal scrollable strip showing selected image attachment thumbnails.
- * Each thumbnail shows the image with a remove button.
- * Uses thumbhash as a blurry placeholder while the full image loads.
+ * Horizontal scrollable strip showing selected attachment previews.
+ * Images render as thumbnails; documents render as compact file chips.
  */
 import * as React from 'react';
-import { ScrollView, View, Pressable } from 'react-native';
+import { ScrollView, View, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -15,14 +14,14 @@ const THUMB_SIZE = 64;
 const BORDER_RADIUS = 8;
 
 interface AgentInputAttachmentStripProps {
-    images: AttachmentPreview[];
+    attachments: AttachmentPreview[];
     onRemove: (id: string) => void;
 }
 
-export function AgentInputAttachmentStrip({ images, onRemove }: AgentInputAttachmentStripProps) {
+export function AgentInputAttachmentStrip({ attachments, onRemove }: AgentInputAttachmentStripProps) {
     const { theme } = useUnistyles();
 
-    if (images.length === 0) return null;
+    if (attachments.length === 0) return null;
 
     return (
         <ScrollView
@@ -32,10 +31,10 @@ export function AgentInputAttachmentStrip({ images, onRemove }: AgentInputAttach
             contentContainerStyle={styles.stripContent}
             keyboardShouldPersistTaps="always"
         >
-            {images.map((img) => (
-                <AttachmentThumbnail
-                    key={img.id}
-                    image={img}
+            {attachments.map((attachment) => (
+                <AttachmentPreviewItem
+                    key={attachment.id}
+                    attachment={attachment}
                     onRemove={onRemove}
                     theme={theme}
                 />
@@ -44,37 +43,52 @@ export function AgentInputAttachmentStrip({ images, onRemove }: AgentInputAttach
     );
 }
 
-function AttachmentThumbnail({
-    image,
+function AttachmentPreviewItem({
+    attachment,
     onRemove,
     theme,
 }: {
-    image: AttachmentPreview;
+    attachment: AttachmentPreview;
     onRemove: (id: string) => void;
     theme: any;
 }) {
-    // Build placeholder from thumbhash if available
+    const isImage = attachment.mimeType.startsWith('image/') && attachment.width > 0 && attachment.height > 0;
+
     const placeholder = React.useMemo(() => {
-        if (!image.thumbhash) return undefined;
-        const uri = thumbhashToDataUri(image.thumbhash);
+        if (!attachment.thumbhash) return undefined;
+        const uri = thumbhashToDataUri(attachment.thumbhash);
         return uri ? { uri } : undefined;
-    }, [image.thumbhash]);
+    }, [attachment.thumbhash]);
 
     return (
         <View style={[
-            styles.thumbContainer,
+            isImage ? styles.thumbContainer : styles.fileContainer,
             { borderColor: theme.colors.divider }
         ]}>
-            <Image
-                source={{ uri: image.uri }}
-                placeholder={placeholder}
-                style={[{ width: THUMB_SIZE, height: THUMB_SIZE }, styles.thumb]}
-                contentFit="cover"
-                transition={150}
-            />
+            {isImage ? (
+                <Image
+                    source={{ uri: attachment.uri }}
+                    placeholder={placeholder}
+                    style={[{ width: THUMB_SIZE, height: THUMB_SIZE }, styles.thumb]}
+                    contentFit="cover"
+                    transition={150}
+                />
+            ) : (
+                <View style={styles.fileContent}>
+                    <Ionicons name="document-text-outline" size={22} color={theme.colors.textSecondary} />
+                    <View style={styles.fileTextContainer}>
+                        <Text style={[styles.fileName, { color: theme.colors.text }]} numberOfLines={1}>
+                            {attachment.name}
+                        </Text>
+                        <Text style={[styles.fileMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                            {formatFileMeta(attachment)}
+                        </Text>
+                    </View>
+                </View>
+            )}
             {/* Remove button */}
             <Pressable
-                onPress={() => onRemove(image.id)}
+                onPress={() => onRemove(attachment.id)}
                 hitSlop={4}
                 style={(p) => [
                     styles.removeButton,
@@ -85,6 +99,22 @@ function AttachmentThumbnail({
             </Pressable>
         </View>
     );
+}
+
+function formatFileMeta(attachment: AttachmentPreview) {
+    const size = attachment.size > 0 ? formatBytes(attachment.size) : '';
+    const type = attachment.mimeType && attachment.mimeType !== 'application/octet-stream'
+        ? attachment.mimeType
+        : 'file';
+    return size ? `${type} - ${size}` : type;
+}
+
+function formatBytes(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(kb >= 10 ? 0 : 1)} KB`;
+    const mb = kb / 1024;
+    return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
 }
 
 const styles = StyleSheet.create(() => ({
@@ -107,6 +137,33 @@ const styles = StyleSheet.create(() => ({
     },
     thumb: {
         borderRadius: BORDER_RADIUS,
+    },
+    fileContainer: {
+        width: 190,
+        height: THUMB_SIZE,
+        borderRadius: BORDER_RADIUS,
+        borderWidth: 1,
+        position: 'relative',
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+    },
+    fileContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        minWidth: 0,
+    },
+    fileTextContainer: {
+        flex: 1,
+        minWidth: 0,
+    },
+    fileName: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    fileMeta: {
+        fontSize: 11,
+        marginTop: 2,
     },
     removeButton: {
         position: 'absolute',

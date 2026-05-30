@@ -1,10 +1,10 @@
 ---
 id: T-005
 name: Lift attachment support to Claude and Codex only
-status: planned
+status: done
 workstream: WS-B
 created: 2026-05-30T19:58:38Z
-updated: 2026-05-30T19:58:38Z
+updated: 2026-05-30T20:45:08Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -42,4 +42,10 @@ Replace the Claude-only app gate with normalized flavor support for Claude and C
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T20:45:08Z: Adjusted support gate to allow legacy no-flavor sessions, explicit Claude, and normalized Codex only; explicit unknown/Gemini/OpenClaw flavors remain unsupported.
+
+- 2026-05-30T20:44:23Z: Replaced the Claude-only attachment gate with normalizeAgentKey-based support for Claude and Codex sessions. Gemini/OpenClaw still trigger the unsupported attachment alert. Verified with pnpm --filter happy-app typecheck and pnpm --filter happy-app exec vitest run sources/utils/pasteImages.web.test.ts sources/sync/typesRaw.spec.ts.
+
+- 2026-05-30T20:44:23Z: Allowing the app attachment gate for Codex while retaining unsupported-agent handling.
 - 2026-05-30T19:58:38Z: Created from .project/templates/task.md by `delano task add`.
