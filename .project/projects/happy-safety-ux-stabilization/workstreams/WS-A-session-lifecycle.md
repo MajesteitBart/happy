@@ -2,9 +2,9 @@
 id: WS-A
 name: Session Lifecycle and Handoff
 owner: Clark
-status: planned
+status: active
 created: 2026-05-30T13:39:41Z
-updated: 2026-05-30T13:39:41Z
+updated: 2026-05-30T16:09:02Z
 operating_mode: feature
 ---
 
@@ -16,8 +16,8 @@ Make local/remote session ownership, aborts, recovery, and handoff explicit and 
 
 ## Owned Files/Areas
 
-- `packages/happy-app/src/store`
-- `packages/happy-app/src/api`
+- `packages/happy-app/sources/sync`
+- `packages/happy-app/sources/-session`
 - `packages/happy-cli/src/api`
 - `packages/happy-cli/src/daemon`
 - `packages/happy-cli/src/claude`
