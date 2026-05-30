@@ -1,3 +1,13 @@
+# May 30 — Codex attachments and skills
+
+Codex sessions can now receive images and files from Happy, and Codex skills show up as `$` autocomplete when the connected terminal reports them.
+
+- Attach images, text, code, and other documents to Codex sessions. Files are capped by the existing attachment limits.
+- Codex receives images as native app-server image input. Documents are written to a short-lived Happy-managed temp path that Codex can read, then cleaned up after the turn.
+- Slash-command autocomplete now uses only live terminal metadata instead of stale built-in defaults.
+- Codex `$` skill autocomplete is backed by native `skills/list` metadata, and selected skills are sent as native skill input items.
+- Claude image attachments remain supported. Claude document handling is lower priority and is not part of this rollout.
+
 # May 15 — Cleaner, steadier chat
 
 Less clutter in the conversation, fewer stuck states, smoother scrolling.

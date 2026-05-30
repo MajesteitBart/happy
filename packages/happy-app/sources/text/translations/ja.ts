@@ -219,8 +219,8 @@ export const ja: TranslationStructure = {
         disableAnalytics: '分析を無効化',
         analyticsDisabled: 'すべてのトラッキングとテレメトリが無効',
         analyticsEnabled: '匿名の使用状況分析がアクティブ',
-        imageUpload: '画像アップロード',
-        imageUploadSubtitle: 'メッセージに画像を添付してClaudeに分析させる',
+        imageUpload: 'Attachments',
+        imageUploadSubtitle: 'Attach images and files for Codex; Claude image support remains available',
     },
 
     errors: {
@@ -969,18 +969,18 @@ export const ja: TranslationStructure = {
     },
 
     imageUpload: {
-        permissionTitle: 'フォトライブラリへのアクセス',
-        permissionMessage: 'メッセージに画像を添付するには、フォトライブラリへのアクセスを許可してください。',
-        limitTitle: '画像の上限に達しました',
-        limitMessage: ({ max }: { max: number }) => `1メッセージに添付できる画像は最大${max}枚です。`,
-        fileTooLargeTitle: 'ファイルが大きすぎます',
-        fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}"は${maxMb}MBの制限を超えているため追加されませんでした。`,
-        uploadFailedTitle: 'アップロードに失敗しました',
+        permissionTitle: 'Photo Library Access',
+        permissionMessage: 'Allow access to your photo library to attach images to messages.',
+        limitTitle: 'Attachment Limit Reached',
+        limitMessage: ({ max }: { max: number }) => `You can attach up to ${max} files per message.`,
+        fileTooLargeTitle: 'File Too Large',
+        fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}" exceeds the ${maxMb}MB limit and was not added.`,
+        uploadFailedTitle: 'Upload Failed',
         uploadFailedMessage: ({ count }: { count: number }) => count === 1
-            ? '1枚の画像をアップロードできず、送信されませんでした。'
-            : `${count}枚の画像をアップロードできず、送信されませんでした。`,
-        notSupportedTitle: '画像はサポートされていません',
-        notSupportedMessage: 'このエージェントは画像の添付に対応していません。テキストのみが送信されました。',
+            ? 'One attachment could not be uploaded and was not sent.'
+            : `${count} attachments could not be uploaded and were not sent.`,
+        notSupportedTitle: 'Attachments Not Supported',
+        notSupportedMessage: 'This agent does not support attachments. Only the text was sent.',
     },
 
     feed: {

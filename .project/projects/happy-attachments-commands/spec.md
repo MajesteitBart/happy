@@ -2,9 +2,9 @@
 name: Happy Attachments and Terminal Commands
 slug: happy-attachments-commands
 owner: Clark
-status: active
+status: complete
 created: 2026-05-30T19:58:18Z
-updated: 2026-05-30T20:02:14Z
+updated: 2026-05-30T21:16:33Z
 outcome: Mobile/web users can send images and documents to Claude Code and Codex sessions, see only terminal-reported slash commands, and use Codex native $ skill autocomplete.
 uncertainty: high
 probe_required: true

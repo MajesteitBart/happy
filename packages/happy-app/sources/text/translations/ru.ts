@@ -204,8 +204,8 @@ export const ru: TranslationStructure = {
         disableAnalytics: 'Отключить аналитику',
         analyticsDisabled: 'Вся аналитика и телеметрия отключены',
         analyticsEnabled: 'Анонимная аналитика использования активна',
-        imageUpload: 'Загрузка изображений',
-        imageUploadSubtitle: 'Прикрепляйте изображения к сообщениям для анализа Claude',
+        imageUpload: 'Attachments',
+        imageUploadSubtitle: 'Attach images and files for Codex; Claude image support remains available',
     },
 
     errors: {
@@ -996,18 +996,18 @@ export const ru: TranslationStructure = {
     },
 
     imageUpload: {
-        permissionTitle: 'Доступ к библиотеке фото',
-        permissionMessage: 'Разрешите доступ к вашей библиотеке фото, чтобы прикреплять изображения к сообщениям.',
-        limitTitle: 'Достигнут лимит изображений',
-        limitMessage: ({ max }: { max: number }) => `Можно прикрепить не более ${max} изображений на сообщение.`,
-        fileTooLargeTitle: 'Файл слишком большой',
-        fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}" превышает лимит ${maxMb}МБ и не был добавлен.`,
-        uploadFailedTitle: 'Ошибка загрузки',
+        permissionTitle: 'Photo Library Access',
+        permissionMessage: 'Allow access to your photo library to attach images to messages.',
+        limitTitle: 'Attachment Limit Reached',
+        limitMessage: ({ max }: { max: number }) => `You can attach up to ${max} files per message.`,
+        fileTooLargeTitle: 'File Too Large',
+        fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}" exceeds the ${maxMb}MB limit and was not added.`,
+        uploadFailedTitle: 'Upload Failed',
         uploadFailedMessage: ({ count }: { count: number }) => count === 1
-            ? 'Одно изображение не удалось загрузить — оно не было отправлено.'
-            : `${count} изображений не удалось загрузить — они не были отправлены.`,
-        notSupportedTitle: 'Изображения не поддерживаются',
-        notSupportedMessage: 'Этот агент не поддерживает изображения. Отправлен только текст.',
+            ? 'One attachment could not be uploaded and was not sent.'
+            : `${count} attachments could not be uploaded and were not sent.`,
+        notSupportedTitle: 'Attachments Not Supported',
+        notSupportedMessage: 'This agent does not support attachments. Only the text was sent.',
     },
 
     feed: {

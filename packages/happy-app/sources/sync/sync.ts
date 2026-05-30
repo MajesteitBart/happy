@@ -102,7 +102,7 @@ type OutboxMessage = {
 type SendMessageOptions = {
     displayText?: string;
     source?: MessageSentSource;
-    /** Optional image attachments to send before the text message. */
+    /** Optional attachments to send before the text message. */
     attachments?: AttachmentPreview[];
 };
 

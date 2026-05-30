@@ -216,23 +216,23 @@ export const en = {
         disableAnalytics: 'Disable Analytics',
         analyticsDisabled: 'All tracking and telemetry disabled',
         analyticsEnabled: 'Anonymous usage analytics active',
-        imageUpload: 'Image Upload',
-        imageUploadSubtitle: 'Attach images to messages for Claude to analyze',
+        imageUpload: 'Attachments',
+        imageUploadSubtitle: 'Attach images and files for Codex; Claude image support remains available',
     },
 
     imageUpload: {
         permissionTitle: 'Photo Library Access',
         permissionMessage: 'Allow access to your photo library to attach images to messages.',
-        limitTitle: 'Image Limit Reached',
-        limitMessage: ({ max }: { max: number }) => `You can attach up to ${max} images per message.`,
+        limitTitle: 'Attachment Limit Reached',
+        limitMessage: ({ max }: { max: number }) => `You can attach up to ${max} files per message.`,
         fileTooLargeTitle: 'File Too Large',
         fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}" exceeds the ${maxMb}MB limit and was not added.`,
         uploadFailedTitle: 'Upload Failed',
         uploadFailedMessage: ({ count }: { count: number }) => count === 1
-            ? 'One image could not be uploaded and was not sent.'
-            : `${count} images could not be uploaded and were not sent.`,
-        notSupportedTitle: 'Images Not Supported',
-        notSupportedMessage: 'This agent does not support image attachments. Only the text was sent.',
+            ? 'One attachment could not be uploaded and was not sent.'
+            : `${count} attachments could not be uploaded and were not sent.`,
+        notSupportedTitle: 'Attachments Not Supported',
+        notSupportedMessage: 'This agent does not support attachments. Only the text was sent.',
     },
 
     errors: {

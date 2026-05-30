@@ -2,9 +2,9 @@
 id: WS-C
 name: WS-C Claude and Codex Attachment Delivery
 owner: Clark
-status: active
+status: done
 created: 2026-05-30T19:58:18Z
-updated: 2026-05-30T20:46:39Z
+updated: 2026-05-30T21:16:33Z
 ---
 
 # Workstream: WS-C Claude and Codex Attachment Delivery

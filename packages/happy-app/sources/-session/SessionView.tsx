@@ -494,7 +494,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
     const isDisconnected = !sessionStatus.isConnected;
     const resumeCommandBlock = getResumeCommandBlock(session);
 
-    // Attachment state (expImageUpload feature flag)
+    // Attachment state. The setting name is historical; this now covers images and files.
     const expImageUpload = useSetting('expImageUpload');
     const {
         selectedAttachments,

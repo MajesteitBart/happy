@@ -105,11 +105,10 @@ export default function FeaturesSettingsScreen() {
                     }
                     showChevron={false}
                 />
-                {/* Image upload hidden — broken, shipping next release
                 <Item
                     title={t('settingsFeatures.imageUpload')}
                     subtitle={t('settingsFeatures.imageUploadSubtitle')}
-                    icon={<Ionicons name="image-outline" size={29} color="#FF2D55" />}
+                    icon={<Ionicons name="document-attach-outline" size={29} color="#FF2D55" />}
                     rightElement={
                         <Switch
                             value={expImageUpload}
@@ -118,7 +117,6 @@ export default function FeaturesSettingsScreen() {
                     }
                     showChevron={false}
                 />
-                */}
             </ItemGroup>
 
             {/* Privacy */}

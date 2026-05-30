@@ -218,8 +218,8 @@ export const zhHant: TranslationStructure = {
         disableAnalytics: '停用分析',
         analyticsDisabled: '所有追蹤和遙測已停用',
         analyticsEnabled: '匿名使用分析已啟用',
-        imageUpload: '圖片上傳',
-        imageUploadSubtitle: '將圖片附加到訊息中讓 Claude 分析',
+        imageUpload: 'Attachments',
+        imageUploadSubtitle: 'Attach images and files for Codex; Claude image support remains available',
     },
 
     errors: {
@@ -967,18 +967,18 @@ export const zhHant: TranslationStructure = {
     },
 
     imageUpload: {
-        permissionTitle: '存取照片圖庫',
-        permissionMessage: '允許存取您的照片圖庫以在訊息中附加圖片。',
-        limitTitle: '已達到圖片限制',
-        limitMessage: ({ max }: { max: number }) => `每則訊息最多可附加 ${max} 張圖片。`,
-        fileTooLargeTitle: '檔案太大',
-        fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}"超過了 ${maxMb}MB 的限制，未能新增。`,
-        uploadFailedTitle: '上傳失敗',
+        permissionTitle: 'Photo Library Access',
+        permissionMessage: 'Allow access to your photo library to attach images to messages.',
+        limitTitle: 'Attachment Limit Reached',
+        limitMessage: ({ max }: { max: number }) => `You can attach up to ${max} files per message.`,
+        fileTooLargeTitle: 'File Too Large',
+        fileTooLargeMessage: ({ name, maxMb }: { name: string; maxMb: number }) => `"${name}" exceeds the ${maxMb}MB limit and was not added.`,
+        uploadFailedTitle: 'Upload Failed',
         uploadFailedMessage: ({ count }: { count: number }) => count === 1
-            ? '一張圖片上傳失敗，未傳送。'
-            : `${count} 張圖片上傳失敗，未傳送。`,
-        notSupportedTitle: '不支援圖片',
-        notSupportedMessage: '此代理不支援圖片附件。僅傳送了文字。',
+            ? 'One attachment could not be uploaded and was not sent.'
+            : `${count} attachments could not be uploaded and were not sent.`,
+        notSupportedTitle: 'Attachments Not Supported',
+        notSupportedMessage: 'This agent does not support attachments. Only the text was sent.',
     },
 
     feed: {

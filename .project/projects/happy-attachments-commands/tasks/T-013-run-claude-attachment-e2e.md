@@ -1,10 +1,10 @@
 ---
 id: T-013
 name: Run Claude attachment E2E
-status: planned
+status: deferred
 workstream: WS-E
 created: 2026-05-30T19:59:14Z
-updated: 2026-05-30T19:59:14Z
+updated: 2026-05-30T21:16:33Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -45,4 +45,6 @@ This is no longer a blocker for Codex-first default-on. Existing Claude image be
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T21:16:33Z: Deferred with Claude document work; existing Claude image path remains preserved, but Claude document E2E is not blocking the Codex-first rollout.
 - 2026-05-30T19:59:14Z: Created from .project/templates/task.md by `delano task add`.

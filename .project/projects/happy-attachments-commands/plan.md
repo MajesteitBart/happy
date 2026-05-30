@@ -1,9 +1,9 @@
 ---
 name: Happy Attachments and Terminal Commands
-status: active
+status: done
 lead: Clark
 created: 2026-05-30T19:58:18Z
-updated: 2026-05-30T20:02:14Z
+updated: 2026-05-30T21:16:33Z
 linear_project_id: 
 risk_level: high
 spec_status_at_plan_time: planned

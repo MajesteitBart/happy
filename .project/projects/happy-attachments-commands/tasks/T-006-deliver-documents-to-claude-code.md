@@ -1,10 +1,10 @@
 ---
 id: T-006
 name: Deliver documents to Claude Code
-status: planned
+status: deferred
 workstream: WS-C
 created: 2026-05-30T19:58:55Z
-updated: 2026-05-30T19:58:55Z
+updated: 2026-05-30T21:16:33Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -45,4 +45,6 @@ Codex is the priority provider for this project. This task should preserve exist
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T21:16:33Z: Deferred by user priority: Codex-first rollout is ready; Claude document support is lower/no priority because Claude subscription usage is not the main path.
 - 2026-05-30T19:58:55Z: Created from .project/templates/task.md by `delano task add`.
