@@ -1,9 +1,9 @@
 ---
 name: Happy Bugfix Stabilization
-status: planned
+status: active
 lead: Clark
 created: 2026-05-30T08:22:30Z
-updated: 2026-05-30T08:35:32Z
+updated: 2026-05-30T15:13:48Z
 linear_project_id:
 risk_level: medium
 spec_status_at_plan_time: planned

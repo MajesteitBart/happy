@@ -2,9 +2,9 @@
 name: Happy Bugfix Stabilization
 slug: happy-bugfix-stabilization
 owner: Bart
-status: planned
+status: active
 created: 2026-05-30T08:22:30Z
-updated: 2026-05-30T08:35:32Z
+updated: 2026-05-30T15:13:48Z
 outcome: Fresh installs and remote agent sessions are materially more reliable across dependency install, Codex, lifecycle, WebSocket, proxy, and daemon reconnect paths.
 uncertainty: medium
 probe_required: false
