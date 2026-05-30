@@ -402,9 +402,14 @@ describe.skipIf(!gatewayAvailable)('OpenClaw integration - daemon lifecycle', { 
 
     const state = await readDaemonState();
     const port = state!.httpPort;
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Happy-Daemon-Control': 'true',
+      ...(state!.controlToken ? { Authorization: `Bearer ${state!.controlToken}` } : {}),
+    };
     const spawnResponse = await fetch(`http://127.0.0.1:${port}/spawn-session`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         directory: integrationEnv.projectPath,
         agent: 'openclaw',
@@ -464,10 +469,15 @@ describe.skipIf(!gatewayAvailable)('OpenClaw integration - daemon lifecycle', { 
 
     const state = await readDaemonState();
     const port = state!.httpPort;
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Happy-Daemon-Control': 'true',
+      ...(state!.controlToken ? { Authorization: `Bearer ${state!.controlToken}` } : {}),
+    };
 
     const spawn1 = await fetch(`http://127.0.0.1:${port}/spawn-session`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         directory: integrationEnv.projectPath,
         agent: 'openclaw',
@@ -486,7 +496,7 @@ describe.skipIf(!gatewayAvailable)('OpenClaw integration - daemon lifecycle', { 
 
     const spawn2 = await fetch(`http://127.0.0.1:${port}/spawn-session`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         directory: integrationEnv.projectPath,
         agent: 'openclaw',

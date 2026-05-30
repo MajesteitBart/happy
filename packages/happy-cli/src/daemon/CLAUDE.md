@@ -132,12 +132,17 @@ Local HTTP server (127.0.0.1 only) provides:
 {
   "pid": 12345,
   "httpPort": 50097,
+  "controlToken": "random-local-control-token",
   "startTime": "8/24/2025, 6:46:22 PM",
   "startedWithCliVersion": "0.9.0-6",
   "lastHeartbeat": "8/24/2025, 6:47:22 PM",
   "daemonLogPath": "/path/to/daemon.log"
 }
 ```
+
+`controlToken` is generated on daemon startup and required as `Authorization: Bearer <token>` for the local HTTP control API. The CLI also sends `X-Happy-Daemon-Control: true` so browser-like localhost requests are rejected. State written by current daemons is chmodded to `0600`, and the Happy home directory is chmodded to `0700` where supported.
+
+Older daemon state files may not contain `controlToken`; the control client keeps the header optional so users can still stop or replace a pre-token daemon during upgrade. New daemons always write the token.
 
 ### Lock File
 - Created with O_EXCL flag for atomic acquisition
@@ -449,7 +454,6 @@ Authorization: Bearer <token>
    - Clients only receive updates for fields that changed
 
 5. **RPC Pattern**: Machine-scoped RPC methods prefixed with machineId (like sessions)
-
 
 
 

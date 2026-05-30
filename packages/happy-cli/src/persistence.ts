@@ -6,7 +6,7 @@
 
 import { FileHandle } from 'node:fs/promises'
 import { readFile, writeFile, mkdir, open, unlink, rename, stat } from 'node:fs/promises'
-import { existsSync, writeFileSync, readFileSync, unlinkSync, renameSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, renameSync } from 'node:fs'
 import { constants } from 'node:fs'
 import { configuration } from '@/configuration'
 import * as z from 'zod';
@@ -73,6 +73,7 @@ function migrateSettings(raw: any, fromVersion: number): any {
 export interface DaemonLocallyPersistedState {
   pid: number;
   httpPort: number;
+  controlToken?: string;
   startTime: string;
   startedWithCliVersion: string;
   lastHeartbeat?: string;
@@ -313,7 +314,20 @@ export async function readDaemonState(): Promise<DaemonLocallyPersistedState | n
  * Write daemon state to local file (synchronously for atomic operation)
  */
 export function writeDaemonState(state: DaemonLocallyPersistedState): void {
-  writeFileSync(configuration.daemonStateFile, JSON.stringify(state, null, 2), 'utf-8');
+  if (!existsSync(configuration.happyHomeDir)) {
+    mkdirSync(configuration.happyHomeDir, { recursive: true, mode: 0o700 });
+  }
+  chmodPathIfSupported(configuration.happyHomeDir, 0o700);
+  writeFileSync(configuration.daemonStateFile, JSON.stringify(state, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  chmodPathIfSupported(configuration.daemonStateFile, 0o600);
+}
+
+function chmodPathIfSupported(path: string, mode: number): void {
+  try {
+    chmodSync(path, mode);
+  } catch (error) {
+    logger.debug(`[PERSISTENCE] Failed to chmod ${path}`, error);
+  }
 }
 
 /**
@@ -444,4 +458,3 @@ export function persistSession(sessionId: string, session: PersistedSession): vo
     logger.debug(`[PERSISTENCE] Failed to persist session ${sessionId}:`, error);
   }
 }
-

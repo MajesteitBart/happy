@@ -3,7 +3,8 @@
  * Provides endpoints for listing sessions, stopping sessions, and daemon shutdown
  */
 
-import fastify, { FastifyInstance } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
+import fastify from 'fastify';
 import { z } from 'zod';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 import { logger } from '@/ui/logger';
@@ -12,13 +13,17 @@ import { decodeBase64 } from '@/api/encryption';
 import { TrackedSession, SessionEncryptionData } from './types';
 import { SpawnSessionOptions, SpawnSessionResult } from '@/modules/common/registerCommonHandlers';
 
+const DAEMON_CONTROL_HEADER = 'x-happy-daemon-control';
+
 export function startDaemonControlServer({
+  controlToken,
   getChildren,
   stopSession,
   spawnSession,
   requestShutdown,
   onHappySessionWebhook
 }: {
+  controlToken: string;
   getChildren: () => TrackedSession[];
   stopSession: (sessionId: string) => boolean;
   spawnSession: (options: SpawnSessionOptions) => Promise<SpawnSessionResult>;
@@ -34,6 +39,18 @@ export function startDaemonControlServer({
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
     const typed = app.withTypeProvider<ZodTypeProvider>();
+
+    typed.addHook('preHandler', async (request, reply) => {
+      const authHeader = request.headers.authorization;
+      if (!isValidBearerToken(authHeader, controlToken)) {
+        logger.debug(`[CONTROL SERVER] Rejected unauthorized request: ${request.method} ${request.url}`);
+        return reply.code(401).send({ error: 'Unauthorized' });
+      }
+      if (request.headers[DAEMON_CONTROL_HEADER] !== 'true') {
+        logger.debug(`[CONTROL SERVER] Rejected request missing daemon control header: ${request.method} ${request.url}`);
+        return reply.code(403).send({ error: 'Forbidden' });
+      }
+    });
 
     // Session reports itself after creation
     typed.post('/session-started', {
@@ -230,4 +247,17 @@ export function startDaemonControlServer({
       });
     });
   });
+}
+
+function isValidBearerToken(authHeader: string | undefined, controlToken: string): boolean {
+  const prefix = 'Bearer ';
+  if (!authHeader?.startsWith(prefix)) {
+    return false;
+  }
+
+  const providedToken = authHeader.slice(prefix.length);
+  const providedBuffer = Buffer.from(providedToken);
+  const expectedBuffer = Buffer.from(controlToken);
+
+  return providedBuffer.length === expectedBuffer.length && timingSafeEqual(providedBuffer, expectedBuffer);
 }
