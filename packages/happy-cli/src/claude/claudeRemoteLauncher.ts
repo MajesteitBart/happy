@@ -17,6 +17,7 @@ import { getToolName } from "./utils/getToolName";
 import { getAskUserQuestionToolCallIds } from "./utils/questionNotification";
 import { cleanupStdinAfterInk } from "@/utils/terminalStdinCleanup";
 import type { MessageParam, ContentBlockParam } from '@anthropic-ai/sdk/resources';
+import { classifyClaudeLauncherFailure } from "./launcherFailureClassification";
 
 interface PermissionsField {
     date: number;
@@ -72,6 +73,7 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
     let exitReason: 'switch' | 'exit' | null = null;
     let abortController: AbortController | null = null;
     let abortFuture: Future<void> | null = null;
+    let deliveredMessageToProvider = false;
 
     async function abort() {
         if (abortController && !abortController.signal.aborted) {
@@ -308,6 +310,7 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
             abortFuture = new Future<void>();
             let modeHash: string | null = null;
             let mode: EnhancedMode | null = null;
+            deliveredMessageToProvider = false;
             try {
                 const remoteResult = await claudeRemote({
                     sessionId: session.sessionId,
@@ -371,12 +374,14 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                                 }
                                 contentBlocks.push({ type: 'text' as const, text: msg.message });
                                 logger.debug(`[remote] Combined ${contentBlocks.length - 1} image(s) with text message`);
+                                deliveredMessageToProvider = true;
                                 return {
                                     message: contentBlocks,
                                     mode: msg.mode,
                                 };
                             }
 
+                            deliveredMessageToProvider = true;
                             return {
                                 message: msg.message,
                                 mode: msg.mode
@@ -468,6 +473,21 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                         session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
                         continue;
                     }
+                    const failureClass = classifyClaudeLauncherFailure({
+                        abortSignalAborted: false,
+                        deliveredMessageToProvider,
+                        providerStarted: session.sessionId !== null,
+                    });
+                    const failureReason = failureClass === 'launcher-crash-before-delivery'
+                        ? 'launcher-crash-before-delivery'
+                        : failureClass === 'delivered-but-not-consumed'
+                            ? 'delivered-but-not-consumed'
+                            : 'provider-error';
+                    const failureMessage = failureClass === 'launcher-crash-before-delivery'
+                        ? 'Claude launcher crashed before the prompt was delivered'
+                        : failureClass === 'delivered-but-not-consumed'
+                            ? 'Claude exited after the prompt was delivered but before it reported completion'
+                            : 'Process exited unexpectedly';
                     session.client.closeClaudeSessionTurn('failed');
                     session.client.sendLifecycleEvent({
                         type: 'process-exited',
@@ -475,10 +495,10 @@ export async function claudeRemoteLauncher(session: Session): Promise<'switch' |
                         inputOwner: 'remote',
                         processLiveness: 'exited',
                         turnState: 'failed',
-                        reason: 'provider-error',
+                        reason: failureReason,
                         mode: 'remote',
                     });
-                    session.client.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
+                    session.client.sendSessionEvent({ type: 'message', message: failureMessage });
                     continue;
                 }
             } finally {

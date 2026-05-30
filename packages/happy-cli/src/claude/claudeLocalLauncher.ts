@@ -3,6 +3,7 @@ import { claudeLocal, ExitCodeError } from "./claudeLocal";
 import { Session } from "./session";
 import { Future } from "@/utils/future";
 import { createSessionScanner } from "./utils/sessionScanner";
+import { classifyClaudeLauncherFailure } from "./launcherFailureClassification";
 
 export type LauncherResult = { type: 'switch' } | { type: 'exit', code: number };
 
@@ -32,6 +33,7 @@ export async function claudeLocalLauncher(session: Session): Promise<LauncherRes
     let exitReason: LauncherResult | null = null;
     const processAbortController = new AbortController();
     let exutFuture = new Future<void>();
+    let deliveredMessageToProvider = false;
     try {
         async function abort() {
 
@@ -54,6 +56,15 @@ export async function claudeLocalLauncher(session: Session): Promise<LauncherRes
             }
 
             session.client.closeClaudeSessionTurn('cancelled');
+            session.client.sendLifecycleEvent({
+                type: 'abort-requested',
+                state: 'aborting',
+                inputOwner: 'remote',
+                processLiveness: 'connected',
+                turnState: 'aborting',
+                reason: 'user-abort',
+                mode: 'local',
+            });
 
             // Reset sent messages
             session.queue.reset();
@@ -91,6 +102,7 @@ export async function claudeLocalLauncher(session: Session): Promise<LauncherRes
 
         // Handle session start
         const handleSessionStart = (sessionId: string) => {
+            deliveredMessageToProvider = true;
             session.onSessionFound(sessionId);
             scanner.onNewSession(sessionId);
         }
@@ -141,16 +153,45 @@ export async function claudeLocalLauncher(session: Session): Promise<LauncherRes
                     break;
                 }
                 if (!exitReason) {
+                    const failureClass = classifyClaudeLauncherFailure({
+                        abortSignalAborted: processAbortController.signal.aborted,
+                        deliveredMessageToProvider,
+                        providerStarted: deliveredMessageToProvider || session.sessionId !== null,
+                    });
+                    if (failureClass === 'user-abort') {
+                        session.client.closeClaudeSessionTurn('cancelled');
+                        session.client.sendLifecycleEvent({
+                            type: 'abort-requested',
+                            state: 'local-active',
+                            inputOwner: 'remote',
+                            processLiveness: 'connected',
+                            turnState: 'cancelled',
+                            reason: 'user-abort',
+                            mode: 'local',
+                        });
+                        session.client.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
+                        continue;
+                    }
+                    const failureReason = failureClass === 'launcher-crash-before-delivery'
+                        ? 'launcher-crash-before-delivery'
+                        : failureClass === 'delivered-but-not-consumed'
+                            ? 'delivered-but-not-consumed'
+                            : 'provider-error';
+                    const failureMessage = failureClass === 'launcher-crash-before-delivery'
+                        ? 'Claude launcher crashed before the prompt was delivered'
+                        : failureClass === 'delivered-but-not-consumed'
+                            ? 'Claude exited after the prompt was delivered but before it reported completion'
+                            : 'Process exited unexpectedly';
                     session.client.sendLifecycleEvent({
                         type: 'process-exited',
                         state: 'error',
                         inputOwner: 'local',
                         processLiveness: 'exited',
                         turnState: 'failed',
-                        reason: 'provider-error',
+                        reason: failureReason,
                         mode: 'local',
                     });
-                    session.client.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
+                    session.client.sendSessionEvent({ type: 'message', message: failureMessage });
                     continue;
                 } else {
                     break;

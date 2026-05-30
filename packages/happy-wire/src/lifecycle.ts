@@ -49,6 +49,8 @@ export const lifecycleReasonSchema = z.enum([
   'socket-reconnect',
   'provider-exit',
   'provider-error',
+  'launcher-crash-before-delivery',
+  'delivered-but-not-consumed',
   'daemon-restart',
   'archive-requested',
   'seq-gap',

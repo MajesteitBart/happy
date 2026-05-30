@@ -1,10 +1,10 @@
 ---
 id: WS-C
 name: Session Lifecycle and Connectivity
-status: planned
+status: active
 owner: Clark
 created: 2026-05-30T08:35:32Z
-updated: 2026-05-30T08:35:32Z
+updated: 2026-05-30T17:32:56Z
 operating_mode: feature
 ---
 

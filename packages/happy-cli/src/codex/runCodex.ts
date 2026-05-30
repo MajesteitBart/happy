@@ -777,6 +777,7 @@ export async function runCodex(opts: {
             if (!message) {
                 break;
             }
+            let turnSubmitted = false;
 
             // Display user messages in the UI
             messageBuffer.addMessage(message.message, 'user');
@@ -810,6 +811,7 @@ export async function runCodex(opts: {
                     ? message.message + '\n\n' + CHANGE_TITLE_INSTRUCTION
                     : message.message;
 
+                turnSubmitted = true;
                 const result = await client.sendTurnAndWait(turnPrompt, {
                     model: message.mode.model,
                     approvalPolicy: executionPolicy.approvalPolicy,
@@ -828,6 +830,8 @@ export async function runCodex(opts: {
                     turnAbortGeneration,
                     currentAbortGeneration: abortGeneration,
                     abortInProgress: abortInProgress !== null,
+                    turnSubmitted,
+                    providerStarted: client.hasActiveThread(),
                 });
                 logger.warn('Error in codex session:', error);
                 if (failureClass === 'user-abort') {
@@ -845,7 +849,16 @@ export async function runCodex(opts: {
                     continue;
                 }
 
-                // Only actual errors reach here (process crash, connection failure, etc.)
+                const failureReason = failureClass === 'launcher-crash-before-delivery'
+                    ? 'launcher-crash-before-delivery'
+                    : failureClass === 'delivered-but-not-consumed'
+                        ? 'delivered-but-not-consumed'
+                        : 'provider-error';
+                const failureMessage = failureClass === 'launcher-crash-before-delivery'
+                    ? 'Codex launcher crashed before the prompt was delivered'
+                    : failureClass === 'delivered-but-not-consumed'
+                        ? 'Codex exited after the prompt was delivered but before it reported completion'
+                        : 'Process exited unexpectedly';
                 messageBuffer.addMessage('Process exited unexpectedly', 'status');
                 session.sendLifecycleEvent({
                     type: 'process-exited',
@@ -853,10 +866,10 @@ export async function runCodex(opts: {
                     inputOwner: 'remote',
                     processLiveness: 'exited',
                     turnState: 'failed',
-                    reason: 'provider-error',
+                    reason: failureReason,
                     mode: 'remote',
                 });
-                session.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
+                session.sendSessionEvent({ type: 'message', message: failureMessage });
             } finally {
                 // Reset permission handler, reasoning processor, and diff processor
                 permissionHandler.reset();

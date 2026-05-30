@@ -48,4 +48,18 @@ describe('lifecycleEventSchema', () => {
 
     expect(result.success).toBe(false);
   });
+
+  it('accepts classified process-exit reasons', () => {
+    for (const reason of ['launcher-crash-before-delivery', 'delivered-but-not-consumed'] as const) {
+      const result = lifecycleEventSchema.safeParse({
+        version: 1,
+        type: 'process-exited',
+        state: 'error',
+        at: Date.now(),
+        reason,
+      });
+
+      expect(result.success).toBe(true);
+    }
+  });
 });
