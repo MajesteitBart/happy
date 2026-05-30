@@ -2,7 +2,15 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildCodexInputItems, isImageMimeType } from './inputBuilder';
+import { buildCodexInputItems, extractSkillInputItems, isImageMimeType } from './inputBuilder';
+import type { CodexSkill } from './codexAppServerTypes';
+
+const reviewSkill: CodexSkill = {
+    name: 'review',
+    description: 'Review code',
+    path: '/skills/review/SKILL.md',
+    enabled: true,
+};
 
 describe('buildCodexInputItems', () => {
     it('builds local image items, document references, final text, and cleanup', async () => {
@@ -54,6 +62,37 @@ describe('buildCodexInputItems', () => {
 
         expect(prepared.input).toEqual([{ type: 'text', text: 'hello' }]);
         await expect(prepared.cleanup()).resolves.toBeUndefined();
+    });
+
+    it('adds native skill input items for selected line-start skill tokens', async () => {
+        const prepared = await buildCodexInputItems({
+            cwd: process.cwd(),
+            prompt: '$review check this diff',
+            skills: [reviewSkill],
+        });
+
+        expect(prepared.input).toEqual([
+            { type: 'skill', name: 'review', path: '/skills/review/SKILL.md' },
+            { type: 'text', text: 'check this diff' },
+        ]);
+        await expect(prepared.cleanup()).resolves.toBeUndefined();
+    });
+
+    it('leaves unknown tokens, shell variables, paths, and code examples untouched', () => {
+        const prompt = [
+            '$unknown stays',
+            'echo $review',
+            '/tmp/$review/file',
+            '```sh',
+            '$review',
+            '```',
+            '`$review` inline',
+        ].join('\n');
+
+        expect(extractSkillInputItems(prompt, [reviewSkill])).toEqual({
+            prompt,
+            items: [],
+        });
     });
 
     it('detects image MIME types case-insensitively', () => {

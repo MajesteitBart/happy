@@ -2,9 +2,9 @@
 id: WS-E
 name: WS-E Verification and Rollout
 owner: Clark
-status: planned
+status: active
 created: 2026-05-30T19:58:18Z
-updated: 2026-05-30T19:58:18Z
+updated: 2026-05-30T21:05:13Z
 ---
 
 # Workstream: WS-E Verification and Rollout

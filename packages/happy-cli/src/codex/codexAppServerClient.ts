@@ -33,6 +33,8 @@ import type {
     InputItem,
     ReasoningEffort,
     McpServerElicitationRequestResponse,
+    CodexSkill,
+    SkillsListResponse,
 } from './codexAppServerTypes';
 import type { SandboxConfig } from '@/persistence';
 import { initializeSandbox, wrapForMcpTransport } from '@/sandbox/manager';
@@ -648,6 +650,27 @@ export class CodexAppServerClient {
         return { threadId: result.thread.id, model: result.model };
     }
 
+    async listSkills(opts?: { cwds?: string[]; forceReload?: boolean }): Promise<CodexSkill[]> {
+        try {
+            const result = await this.request('skills/list', {
+                ...(opts?.cwds ? { cwds: opts.cwds } : {}),
+                ...(opts?.forceReload ? { forceReload: true } : {}),
+            }) as SkillsListResponse;
+            const entries = Array.isArray(result?.data) ? result.data : [];
+            const skills = entries.flatMap(entry => Array.isArray(entry.skills) ? entry.skills : []);
+            const byName = new Map<string, CodexSkill>();
+            for (const skill of skills) {
+                if (!skill.enabled) continue;
+                if (!skill.name || !skill.path) continue;
+                byName.set(skill.name, skill);
+            }
+            return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+        } catch (error) {
+            logger.debug('[CodexAppServer] Failed to list skills', { error });
+            return [];
+        }
+    }
+
     async reconnectAndResumeThread(): Promise<boolean> {
         const threadId = this._threadId;
         await this.disconnectInternal({ preserveThreadState: !!threadId });
@@ -777,6 +800,7 @@ export class CodexAppServerClient {
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
         attachments?: PendingAttachment[];
+        skills?: CodexSkill[];
     }): Promise<void> {
         if (!this._threadId) {
             throw new Error('No active thread. Call startThread first.');
@@ -786,6 +810,7 @@ export class CodexAppServerClient {
         const preparedInput = await buildCodexInputItems({
             prompt,
             attachments: opts?.attachments,
+            skills: opts?.skills,
             cwd: opts?.cwd ?? this.threadDefaults?.cwd ?? process.cwd(),
         });
         this.activeTurnAttachmentCleanup = preparedInput.cleanup;
@@ -842,6 +867,7 @@ export class CodexAppServerClient {
         sandbox?: SandboxMode;
         effort?: ReasoningEffort;
         attachments?: PendingAttachment[];
+        skills?: CodexSkill[];
         turnTimeoutMs?: number;
     }): Promise<{ aborted: boolean }> {
         // Wait for any in-flight interruptTurn() to complete before starting a new
@@ -1234,6 +1260,11 @@ export class CodexAppServerClient {
         // (e.g. happy-mcp bridge failing on Windows due to shebang execution).
         if (method === 'mcpServer/startupStatus/updated') {
             logger.debug(`[CodexAppServer] mcpServer startup status:`, params);
+            return;
+        }
+
+        if (method === 'skills/changed') {
+            this.eventHandler?.({ type: 'skills_changed' });
             return;
         }
 

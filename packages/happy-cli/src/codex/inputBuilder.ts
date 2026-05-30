@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { basename, join, relative, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { PendingAttachment } from '@/utils/MessageQueue2';
-import type { InputItem } from './codexAppServerTypes';
+import type { CodexSkill, InputItem } from './codexAppServerTypes';
 
 const ATTACHMENT_ROOT_DIR = '.happy-attachments';
 
@@ -14,10 +14,12 @@ export type PreparedCodexInput = {
 export async function buildCodexInputItems(opts: {
     prompt: string;
     attachments?: PendingAttachment[];
+    skills?: CodexSkill[];
     cwd: string;
 }): Promise<PreparedCodexInput> {
     const attachments = opts.attachments ?? [];
-    if (attachments.length === 0) {
+    const skillInput = extractSkillInputItems(opts.prompt, opts.skills ?? []);
+    if (attachments.length === 0 && skillInput.items.length === 0) {
         return {
             input: [{ type: 'text', text: opts.prompt }],
             cleanup: async () => { },
@@ -25,14 +27,19 @@ export async function buildCodexInputItems(opts: {
     }
 
     const rootDir = join(opts.cwd, ATTACHMENT_ROOT_DIR);
-    const turnDir = join(rootDir, `turn-${Date.now()}-${randomUUID()}`);
-    await mkdir(turnDir, { recursive: true, mode: 0o700 });
+    const turnDir = attachments.length > 0
+        ? join(rootDir, `turn-${Date.now()}-${randomUUID()}`)
+        : null;
+    if (turnDir) {
+        await mkdir(turnDir, { recursive: true, mode: 0o700 });
+    }
 
     const input: InputItem[] = [];
+    input.push(...skillInput.items);
 
     for (const [index, attachment] of attachments.entries()) {
         const filename = safeAttachmentFilename(attachment.name, index);
-        const absolutePath = join(turnDir, filename);
+        const absolutePath = join(turnDir!, filename);
         await writeFile(absolutePath, attachment.data, { mode: 0o600 });
 
         if (isImageMimeType(attachment.mimeType)) {
@@ -49,18 +56,53 @@ export async function buildCodexInputItems(opts: {
         }
     }
 
-    input.push({ type: 'text', text: opts.prompt });
+    input.push({ type: 'text', text: skillInput.prompt });
 
     return {
         input,
         cleanup: async () => {
-            await rm(turnDir, { recursive: true, force: true });
+            if (turnDir) {
+                await rm(turnDir, { recursive: true, force: true });
+            }
         },
     };
 }
 
 export function isImageMimeType(mimeType: string): boolean {
     return mimeType.toLowerCase().startsWith('image/');
+}
+
+export function extractSkillInputItems(
+    prompt: string,
+    skills: CodexSkill[],
+): { prompt: string; items: InputItem[] } {
+    if (skills.length === 0) return { prompt, items: [] };
+
+    const skillsByName = new Map(skills.map(skill => [skill.name, skill]));
+    const items: InputItem[] = [];
+    const lines = prompt.split('\n');
+    let inFence = false;
+
+    const nextLines = lines.map((line) => {
+        if (line.trimStart().startsWith('```')) {
+            inFence = !inFence;
+            return line;
+        }
+        if (inFence) return line;
+
+        const match = line.match(/^(\s*)\$([A-Za-z0-9_-]+)(?=\s|$)(.*)$/);
+        if (!match) return line;
+
+        const [, indent, name, rest] = match;
+        const skill = skillsByName.get(name);
+        if (!skill?.path) return line;
+
+        items.push({ type: 'skill', name: skill.name, path: skill.path });
+        return `${indent}${rest.trimStart()}`;
+    });
+
+    const nextPrompt = nextLines.join('\n');
+    return { prompt: items.length > 0 ? nextPrompt.trim() : prompt, items };
 }
 
 function safeAttachmentFilename(name: string, index: number): string {

@@ -2,6 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { MetadataSchema } from './storageTypes';
 
 describe('MetadataSchema', () => {
+    it('preserves dedicated Codex skill metadata separately from generic skills', () => {
+        const metadata = MetadataSchema.parse({
+            path: '/tmp/project',
+            host: 'local-machine',
+            skills: ['claude-skill'],
+            codexSkills: [
+                {
+                    name: 'review',
+                    description: 'Review code',
+                    path: '/skills/review/SKILL.md',
+                },
+            ],
+        });
+
+        expect(metadata.skills).toEqual(['claude-skill']);
+        expect(metadata.codexSkills).toEqual([
+            {
+                name: 'review',
+                description: 'Review code',
+                path: '/skills/review/SKILL.md',
+            },
+        ]);
+    });
+
     it('preserves archive lifecycle metadata', () => {
         const metadata = MetadataSchema.parse({
             path: '/tmp/project',

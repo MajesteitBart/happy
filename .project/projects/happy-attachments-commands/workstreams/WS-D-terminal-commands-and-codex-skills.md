@@ -2,9 +2,9 @@
 id: WS-D
 name: WS-D Terminal Commands and Codex Skills
 owner: Clark
-status: planned
+status: done
 created: 2026-05-30T19:58:18Z
-updated: 2026-05-30T19:58:18Z
+updated: 2026-05-30T21:04:37Z
 ---
 
 # Workstream: WS-D Terminal Commands and Codex Skills

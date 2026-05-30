@@ -1,7 +1,8 @@
-import { CommandSuggestion, FileMentionSuggestion } from '@/components/AgentInputSuggestionView';
+import { CommandSuggestion, FileMentionSuggestion, SkillSuggestion } from '@/components/AgentInputSuggestionView';
 import * as React from 'react';
 import { searchFiles, FileItem } from '@/sync/suggestionFile';
 import { searchCommands, CommandItem } from '@/sync/suggestionCommands';
+import { CodexSkillItem, searchCodexSkills } from '@/sync/suggestionSkills';
 
 export async function getCommandSuggestions(sessionId: string, query: string): Promise<{
     key: string;
@@ -58,6 +59,30 @@ export async function getFileMentionSuggestions(sessionId: string, query: string
     }
 }
 
+export async function getSkillSuggestions(sessionId: string, query: string): Promise<{
+    key: string;
+    text: string;
+    component: React.ComponentType;
+}[]> {
+    const searchTerm = query.slice(1);
+
+    try {
+        const skills = await searchCodexSkills(sessionId, searchTerm, { limit: 50 });
+
+        return skills.map((skill: CodexSkillItem) => ({
+            key: `skill-${skill.name}`,
+            text: `$${skill.name}`,
+            component: () => React.createElement(SkillSuggestion, {
+                name: skill.name,
+                description: skill.description,
+            }),
+        }));
+    } catch (error) {
+        console.error('Error fetching skill suggestions:', error);
+        return [];
+    }
+}
+
 export async function getSuggestions(sessionId: string, query: string): Promise<{
     key: string;
     text: string;
@@ -73,6 +98,10 @@ export async function getSuggestions(sessionId: string, query: string): Promise<
 
     if (query.startsWith('@')) {
         return getFileMentionSuggestions(sessionId, query);
+    }
+
+    if (query.startsWith('$')) {
+        return getSkillSuggestions(sessionId, query);
     }
 
     return [];

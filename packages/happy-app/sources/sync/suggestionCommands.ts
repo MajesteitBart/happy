@@ -51,17 +51,8 @@ export const IGNORED_COMMANDS = [
     "login"
 ];
 
-// Default commands always available
-const DEFAULT_COMMANDS: CommandItem[] = [
-    { command: 'compact', description: 'Compact the conversation history' },
-    { command: 'clear', description: 'Clear the conversation' },
-    { command: 'mcp', description: 'Show connected MCP servers' },
-    { command: 'skills', description: 'Show available skills' },
-];
-
 // Command descriptions for known tools/commands
 const COMMAND_DESCRIPTIONS: Record<string, string> = {
-    // Default commands
     compact: 'Compact the conversation history',
     
     // Common tool commands
@@ -83,10 +74,10 @@ function getCommandsFromSession(sessionId: string): CommandItem[] {
     const state = storage.getState();
     const session = state.sessions[sessionId];
     if (!session || !session.metadata) {
-        return DEFAULT_COMMANDS;
+        return [];
     }
 
-    const commands: CommandItem[] = [...DEFAULT_COMMANDS];
+    const commands: CommandItem[] = [];
     
     // Add commands from metadata.slashCommands (filter with ignore list)
     if (session.metadata.slashCommands) {
@@ -94,7 +85,7 @@ function getCommandsFromSession(sessionId: string): CommandItem[] {
             // Skip if in ignore list
             if (IGNORED_COMMANDS.includes(cmd)) continue;
             
-            // Check if it's already in default commands
+            // Skip duplicates from provider metadata
             if (!commands.find(c => c.command === cmd)) {
                 commands.push({
                     command: cmd,

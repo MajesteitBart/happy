@@ -30,6 +30,31 @@ export const CommandSuggestion = React.memo(({ command, description }: CommandSu
     );
 });
 
+interface SkillSuggestionProps {
+    name: string;
+    description?: string;
+}
+
+export const SkillSuggestion = React.memo(({ name, description }: SkillSuggestionProps) => {
+    return (
+        <View style={styles.suggestionContainer}>
+            <Text
+                style={[styles.commandText, { marginRight: description ? 12 : 0 }]}
+            >
+                ${name}
+            </Text>
+            {description && (
+                <Text
+                    style={styles.descriptionText}
+                    numberOfLines={1}
+                >
+                    {description}
+                </Text>
+            )}
+        </View>
+    );
+});
+
 interface FileMentionProps {
     fileName: string;
     filePath: string;

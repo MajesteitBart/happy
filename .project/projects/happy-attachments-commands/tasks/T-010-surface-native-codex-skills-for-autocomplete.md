@@ -1,10 +1,10 @@
 ---
 id: T-010
 name: Surface native Codex skills for $ autocomplete
-status: planned
+status: done
 workstream: WS-D
 created: 2026-05-30T19:58:56Z
-updated: 2026-05-30T19:58:56Z
+updated: 2026-05-30T21:04:26Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -43,4 +43,8 @@ Query Codex native app-server skill APIs and expose names/descriptions in Happy 
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T21:04:26Z: Codex runner lists native app-server skills via skills/list, refreshes metadata on skills/changed, app exposes $ autocomplete only for Codex sessions with skill metadata, and skill rows render name/description. Verified with pnpm --filter happy-app typecheck, happy-app suggestion tests, pnpm --filter happy typecheck, and CLI codex/inputBuilder + codexAppServerClient + MessageQueue2 tests.
+
+- 2026-05-30T20:57:06Z: Surfacing Codex app-server native skills in Happy metadata and app autocomplete.
 - 2026-05-30T19:58:56Z: Created from .project/templates/task.md by `delano task add`.

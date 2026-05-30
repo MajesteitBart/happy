@@ -1,10 +1,10 @@
 ---
 id: T-009
 name: Use live terminal slash command metadata only
-status: planned
+status: done
 workstream: WS-D
 created: 2026-05-30T19:58:56Z
-updated: 2026-05-30T19:58:56Z
+updated: 2026-05-30T20:55:54Z
 linear_issue_id: 
 github_issue: 
 github_pr: 
@@ -43,4 +43,8 @@ Make slash autocomplete reflect the connected terminal session instead of hardco
 - [ ] Docs updated
 
 ## Evidence Log
+
+- 2026-05-30T20:55:54Z: Slash autocomplete now uses only live session metadata.slashCommands, with local description enrichment and ignored-command filtering. Sessions with no metadata or empty slashCommands return no suggestions, so the existing autocomplete guard renders no empty popover. Verified with pnpm --filter happy-app typecheck and pnpm --filter happy-app exec vitest run sources/sync/suggestionCommands.test.ts.
+
+- 2026-05-30T20:54:22Z: Switching slash autocomplete to connected terminal metadata only.
 - 2026-05-30T19:58:56Z: Created from .project/templates/task.md by `delano task add`.

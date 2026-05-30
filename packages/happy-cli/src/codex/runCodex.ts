@@ -2,7 +2,7 @@ import { render } from "ink";
 import React from "react";
 import { ApiClient } from '@/api/api';
 import { CodexAppServerClient } from './codexAppServerClient';
-import type { ReasoningEffort } from './codexAppServerTypes';
+import type { CodexSkill, ReasoningEffort } from './codexAppServerTypes';
 import { CodexPermissionHandler } from './utils/permissionHandler';
 import { ReasoningProcessor } from './utils/reasoningProcessor';
 import { DiffProcessor } from './utils/diffProcessor';
@@ -258,6 +258,25 @@ export async function runCodex(opts: {
     const VALID_REMOTE_EFFORTS: readonly ReasoningEffort[] = [
         'none', 'minimal', 'low', 'medium', 'high', 'xhigh',
     ];
+
+    let currentCodexSkills: CodexSkill[] = [];
+
+    const publishCodexSkills = async (forceReload = false) => {
+        if (!client) return;
+        const skills = await client.listSkills({ cwds: [process.cwd()], forceReload });
+        currentCodexSkills = skills;
+        session.updateMetadata((currentMetadata) => ({
+            ...currentMetadata,
+            codexSkills: skills.map((skill: CodexSkill) => ({
+                name: skill.name,
+                description: skill.interface?.shortDescription
+                    ?? skill.shortDescription
+                    ?? skill.description,
+                path: skill.path,
+            })),
+        }));
+        logger.debug(`[Codex] Published ${skills.length} Codex skills to session metadata`);
+    };
 
     // Handle file events. Downloads started before a user text message are
     // atomically claimed by drainAttachmentsForUserMessage() for that turn.
@@ -619,6 +638,8 @@ export async function runCodex(opts: {
             messageBuffer.addMessage((msg as any).message, 'assistant');
         } else if (msg.type === 'agent_reasoning_delta') {
             // Skip reasoning deltas in the UI to reduce noise
+        } else if (msg.type === 'skills_changed') {
+            void publishCodexSkills(true);
         } else if (msg.type === 'agent_reasoning') {
             messageBuffer.addMessage(`[Thinking] ${(msg as any).text.substring(0, 100)}...`, 'system');
         } else if (msg.type === 'exec_command_begin') {
@@ -772,6 +793,7 @@ export async function runCodex(opts: {
         logger.debug('[codex]: client.connect begin');
         await client.connect();
         logger.debug('[codex]: client.connect done');
+        await publishCodexSkills();
 
         if (opts.resumeThreadId) {
             await resumeExistingThread({
@@ -852,6 +874,7 @@ export async function runCodex(opts: {
                     sandbox: executionPolicy.sandbox,
                     effort: message.mode.effort,
                     attachments: message.attachments,
+                    skills: currentCodexSkills,
                 });
                 first = false;
 

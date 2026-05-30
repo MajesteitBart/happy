@@ -354,6 +354,7 @@ const SIDEBAR_MIN_WINDOW_WIDTH = 1100;
 
 // Hoisted so AgentInput's React.memo doesn't see a new array ref on every keystroke
 const AGENT_INPUT_AUTOCOMPLETE_PREFIXES = ['@', '/'];
+const CODEX_AGENT_INPUT_AUTOCOMPLETE_PREFIXES = ['@', '/', '$'];
 
 // Imperative handle exposed by ChatComposer so SessionViewLoaded can read /
 // clear the message text without subscribing to it (which would re-render
@@ -478,6 +479,11 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
             effectiveAgentDefaults.effortLevel,
         ])
     ), [availableEffortLevels, session.effortLevel, effectiveAgentDefaults.effortLevel]);
+    const autocompletePrefixes = React.useMemo(() => (
+        flavor === 'codex' && (session.metadata?.codexSkills?.length ?? 0) > 0
+            ? CODEX_AGENT_INPUT_AUTOCOMPLETE_PREFIXES
+            : AGENT_INPUT_AUTOCOMPLETE_PREFIXES
+    ), [flavor, session.metadata?.codexSkills?.length]);
 
     const sessionStatus = useSessionStatus(session);
     const sessionUsage = useSessionUsage(sessionId);
@@ -703,7 +709,7 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
             onPickDocuments={expImageUpload ? pickDocuments : undefined}
             onRemoveAttachment={expImageUpload ? removeAttachment : undefined}
             onAddAttachments={expImageUpload ? addAttachments : undefined}
-            autocompletePrefixes={AGENT_INPUT_AUTOCOMPLETE_PREFIXES}
+            autocompletePrefixes={autocompletePrefixes}
             autocompleteSuggestions={handleAutocompleteSuggestions}
             usageData={usageData}
             alwaysShowContextSize={alwaysShowContextSize}

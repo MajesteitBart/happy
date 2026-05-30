@@ -1,5 +1,5 @@
 /**
- * Cherry-picked types from `codex app-server generate-ts` (Codex 0.107.0).
+ * Cherry-picked types from `codex app-server generate-ts` (Codex 0.135.0).
  * Only the essential types needed for our integration.
  */
 
@@ -134,7 +134,29 @@ export type TurnAbortReason = "interrupted" | "replaced" | "review_ended";
 export type InputItem =
     | { type: "text"; text: string; text_elements?: unknown[] }
     | { type: "image"; url: string }
-    | { type: "localImage"; path: string };
+    | { type: "localImage"; path: string }
+    | { type: "skill"; name: string; path: string };
+
+export type CodexSkill = {
+    name: string;
+    description: string;
+    shortDescription?: string | null;
+    path: string;
+    enabled: boolean;
+    interface?: {
+        displayName?: string;
+        shortDescription?: string;
+        defaultPrompt?: string;
+    } | null;
+};
+
+export type SkillsListResponse = {
+    data?: Array<{
+        cwd?: string;
+        skills?: CodexSkill[];
+        errors?: unknown[];
+    }>;
+};
 
 export type SandboxPolicy =
     | { type: "dangerFullAccess" }
