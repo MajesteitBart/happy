@@ -1,10 +1,10 @@
 ---
 id: WS-A
 name: Dependency Install Stabilization
-status: active
+status: done
 owner: Clark
 created: 2026-05-30T08:35:32Z
-updated: 2026-05-30T15:13:48Z
+updated: 2026-05-30T17:27:47Z
 operating_mode: scoped-change
 ---
 

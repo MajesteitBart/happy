@@ -11,6 +11,15 @@ const zlib = require('zlib');
 const tar = require('tar');
 const os = require('os');
 
+const SUPPORTED_PLATFORM_DIRS = [
+    'arm64-darwin',
+    'x64-darwin',
+    'arm64-linux',
+    'x64-linux',
+    'arm64-win32',
+    'x64-win32',
+];
+
 /**
  * Get the platform-specific directory name
  */
@@ -29,7 +38,10 @@ function getPlatformDir() {
         if (arch === 'arm64') return 'arm64-win32';
     }
     
-    throw new Error(`Unsupported platform: ${arch}-${platform}`);
+    throw new Error(
+        `Unsupported platform: ${arch}-${platform}. ` +
+        `Supported platforms: ${SUPPORTED_PLATFORM_DIRS.join(', ')}`
+    );
 }
 
 /**
@@ -149,7 +161,7 @@ async function unpackTools() {
 }
 
 // Export for use as module
-module.exports = { unpackTools, getPlatformDir, getToolsDir };
+module.exports = { unpackTools, getPlatformDir, getToolsDir, SUPPORTED_PLATFORM_DIRS };
 
 // Run if executed directly
 if (require.main === module) {
