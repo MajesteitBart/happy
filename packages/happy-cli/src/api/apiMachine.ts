@@ -13,7 +13,8 @@ import { backoff } from '@/utils/time';
 import { RpcHandlerManager } from './rpc/RpcHandlerManager';
 import { detectCLIAvailability, CLIAvailability } from '@/utils/detectCLI';
 import { detectResumeSupport, type ResumeSupport } from '@/resume/localHappyAgentAuth';
-import { shouldReconnect } from '@/utils/lidState';
+import { getReconnectDecision } from '@/utils/lidState';
+import { summarizeSocketConnectError } from '@/utils/socketDiagnostics';
 import { getProjectPath } from '@/claude/utils/path';
 import {
     forkSession as claudeForkSession,
@@ -426,7 +427,7 @@ export class ApiMachineClient {
         });
 
         this.socket.on('connect_error', (error) => {
-            logger.debug(`[API MACHINE] Connection error: ${error.message}`);
+            logger.debug('[API MACHINE] Socket connection error:', summarizeSocketConnectError(error));
             this.startSmartReconnect();
         });
 
@@ -481,17 +482,21 @@ export class ApiMachineClient {
                 this.reconnectInterval = null;
                 return;
             }
-            if (!shouldReconnect()) {
-                logger.debug('[API MACHINE] Still not ready to reconnect');
+            const reconnectDecision = getReconnectDecision();
+            if (!reconnectDecision.shouldReconnect) {
+                logger.debug('[API MACHINE] Still not ready to reconnect', reconnectDecision);
                 return;
             }
-            logger.debug('[API MACHINE] Attempting reconnect');
+            logger.debug('[API MACHINE] Attempting reconnect', reconnectDecision);
             this.socket.connect();
         }, 3000);
 
-        if (shouldReconnect()) {
-            logger.debug('[API MACHINE] Network up + lid open — reconnecting in 1s');
+        const initialReconnectDecision = getReconnectDecision();
+        if (initialReconnectDecision.shouldReconnect) {
+            logger.debug('[API MACHINE] Network ready — reconnecting in 1s', initialReconnectDecision);
             setTimeout(() => { if (!this.socket.connected) this.socket.connect() }, 1000);
+        } else {
+            logger.debug('[API MACHINE] Delaying reconnect', initialReconnectDecision);
         }
     }
 

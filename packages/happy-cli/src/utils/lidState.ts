@@ -1,6 +1,17 @@
 import os from 'os'
 import { execSync } from 'child_process'
 
+export type ReconnectBlockReason = 'network-unavailable' | 'headless-lid-closed' | null
+
+export type ReconnectDecision = {
+    shouldReconnect: boolean
+    hasNetworkConnectivity: boolean
+    lidClosed: boolean
+    externalDisplay: boolean
+    headlessReconnectOverride: boolean
+    blockedBy: ReconnectBlockReason
+}
+
 export function hasNetworkConnectivity(): boolean {
     const interfaces = os.networkInterfaces()
     for (const name of Object.keys(interfaces)) {
@@ -48,8 +59,48 @@ export function hasExternalDisplay(): boolean {
     }
 }
 
+export function hasHeadlessReconnectOverride(env: NodeJS.ProcessEnv = process.env): boolean {
+    return env.HAPPY_RECONNECT_WHEN_HEADLESS === '1' || env.HAPPY_RECONNECT_WHEN_HEADLESS === 'true'
+}
+
+export function getReconnectDecision(env: NodeJS.ProcessEnv = process.env): ReconnectDecision {
+    const network = hasNetworkConnectivity()
+    const lidClosed = isLidClosed()
+    const externalDisplay = hasExternalDisplay()
+    const headlessReconnectOverride = hasHeadlessReconnectOverride(env)
+
+    if (!network) {
+        return {
+            shouldReconnect: false,
+            hasNetworkConnectivity: network,
+            lidClosed,
+            externalDisplay,
+            headlessReconnectOverride,
+            blockedBy: 'network-unavailable',
+        }
+    }
+
+    if (lidClosed && !externalDisplay && !headlessReconnectOverride) {
+        return {
+            shouldReconnect: false,
+            hasNetworkConnectivity: network,
+            lidClosed,
+            externalDisplay,
+            headlessReconnectOverride,
+            blockedBy: 'headless-lid-closed',
+        }
+    }
+
+    return {
+        shouldReconnect: true,
+        hasNetworkConnectivity: network,
+        lidClosed,
+        externalDisplay,
+        headlessReconnectOverride,
+        blockedBy: null,
+    }
+}
+
 export function shouldReconnect(): boolean {
-    if (!hasNetworkConnectivity()) return false
-    if (isLidClosed() && !hasExternalDisplay()) return false
-    return true
+    return getReconnectDecision().shouldReconnect
 }

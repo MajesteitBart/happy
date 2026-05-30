@@ -12,7 +12,7 @@ import { deriveKey } from '@/utils/deriveKey';
 import { RpcHandlerManager } from './rpc/RpcHandlerManager';
 import { registerCommonHandlers } from '../modules/common/registerCommonHandlers';
 import { calculateCost } from '@/utils/pricing';
-import { shouldReconnect } from '@/utils/lidState';
+import { getReconnectDecision } from '@/utils/lidState';
 import { createLifecycleEvent, type LifecycleEvent, type LifecycleEventInput, type LifecycleProvider, type LifecycleReason, type LifecycleStartedBy, type SessionEnvelope, type SessionTurnEndStatus } from '@slopus/happy-wire';
 import {
     closeClaudeTurnWithStatus,
@@ -21,6 +21,7 @@ import {
 } from '@/claude/utils/sessionProtocolMapper';
 import { InvalidateSync } from '@/utils/sync';
 import axios from 'axios';
+import { summarizeSocketConnectError } from '@/utils/socketDiagnostics';
 
 /**
  * ACP (Agent Communication Protocol) message data types.
@@ -217,7 +218,7 @@ export class ApiSessionClient extends EventEmitter {
         })
 
         this.socket.on('connect_error', (error) => {
-            logger.debug('[API] Socket connection error:', error);
+            logger.debug('[API] Socket connection error:', summarizeSocketConnectError(error));
             if (this.hasConnectedOnce) {
                 this.recoveryPending = true;
                 this.recoveryReason = 'socket-disconnect';
@@ -891,17 +892,21 @@ export class ApiSessionClient extends EventEmitter {
                 this.reconnectInterval = null;
                 return;
             }
-            if (!shouldReconnect()) {
-                logger.debug('[API] Still not ready to reconnect');
+            const reconnectDecision = getReconnectDecision();
+            if (!reconnectDecision.shouldReconnect) {
+                logger.debug('[API] Still not ready to reconnect', reconnectDecision);
                 return;
             }
-            logger.debug('[API] Attempting reconnect');
+            logger.debug('[API] Attempting reconnect', reconnectDecision);
             this.socket.connect();
         }, 3000);
 
-        if (shouldReconnect()) {
-            logger.debug('[API] Network up + lid open — reconnecting in 1s');
+        const initialReconnectDecision = getReconnectDecision();
+        if (initialReconnectDecision.shouldReconnect) {
+            logger.debug('[API] Network ready — reconnecting in 1s', initialReconnectDecision);
             setTimeout(() => { if (!this.socket.connected) this.socket.connect() }, 1000);
+        } else {
+            logger.debug('[API] Delaying reconnect', initialReconnectDecision);
         }
     }
 }

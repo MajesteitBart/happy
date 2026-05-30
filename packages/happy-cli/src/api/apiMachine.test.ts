@@ -4,10 +4,10 @@ import type { Machine } from './types';
 
 const {
     mockIo,
-    mockShouldReconnect
+    mockGetReconnectDecision
 } = vi.hoisted(() => ({
     mockIo: vi.fn(),
-    mockShouldReconnect: vi.fn(() => true)
+    mockGetReconnectDecision: vi.fn(() => ({ shouldReconnect: true }))
 }));
 
 vi.mock('socket.io-client', () => ({
@@ -61,7 +61,7 @@ vi.mock('@/resume/localHappyAgentAuth', () => ({
 }));
 
 vi.mock('@/utils/lidState', () => ({
-    shouldReconnect: mockShouldReconnect
+    getReconnectDecision: mockGetReconnectDecision
 }));
 
 type SocketHandler = (...args: any[]) => void;
@@ -97,7 +97,7 @@ describe('ApiMachineClient socket reconnection', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockShouldReconnect.mockReturnValue(true);
+        mockGetReconnectDecision.mockReturnValue({ shouldReconnect: true });
         socketHandlers = {};
         mockSocket = {
             connected: false,

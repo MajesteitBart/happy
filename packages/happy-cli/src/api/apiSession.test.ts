@@ -9,7 +9,7 @@ const {
     mockAxiosPost,
     mockBackoff,
     mockDelay,
-    mockShouldReconnect
+    mockGetReconnectDecision
 } = vi.hoisted(() => ({
     mockIo: vi.fn(),
     mockAxiosGet: vi.fn(),
@@ -26,7 +26,7 @@ const {
         throw lastError;
     }),
     mockDelay: vi.fn(async () => undefined),
-    mockShouldReconnect: vi.fn(() => true)
+    mockGetReconnectDecision: vi.fn(() => ({ shouldReconnect: true }))
 }));
 
 vi.mock('socket.io-client', () => ({
@@ -71,7 +71,7 @@ vi.mock('@/utils/time', () => ({
 }));
 
 vi.mock('@/utils/lidState', () => ({
-    shouldReconnect: mockShouldReconnect
+    getReconnectDecision: mockGetReconnectDecision
 }));
 
 type SocketHandler = (...args: any[]) => void;
@@ -151,7 +151,7 @@ describe('ApiSessionClient v3 messages API migration', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockShouldReconnect.mockReturnValue(true);
+        mockGetReconnectDecision.mockReturnValue({ shouldReconnect: true });
         socketHandlers = {};
         session = makeSession();
         mockSocket = {
