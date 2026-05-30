@@ -166,7 +166,7 @@ Sessions to read (paths in $SCRATCH):
 1. /tmp/ce-sessions-XXXX/abc123.skeleton.txt
    platform=claude branch=feat/auth-fix ts=2026-05-01
 2. /tmp/ce-sessions-XXXX/def456.skeleton.txt  errors=/tmp/ce-sessions-XXXX/def456.errors.txt
-   platform=codex cwd=/Users/.../my-project ts=2026-05-03
+   platform=codex cwd=<repo-root> ts=2026-05-03
 ...
 
 Output schema:
