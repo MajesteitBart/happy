@@ -3,7 +3,69 @@ import { type Fastify } from "../types";
 import * as semver from 'semver';
 import { ANDROID_UP_TO_DATE, IOS_UP_TO_DATE } from "@/versions";
 
+export const SERVER_CAPABILITIES = {
+    apiVersion: 1,
+    server: {
+        name: "happy-server-self-host",
+        version: process.env.npm_package_version ?? null
+    },
+    messages: {
+        v3Post: true,
+        backwardPagination: true,
+        idempotentLocalId: true,
+        maxBatchSize: 100,
+        maxPageSize: 500
+    },
+    features: {
+        attachments: true,
+        voice: true,
+        kv: true
+    },
+    modelCatalog: {
+        version: 1
+    },
+    minimums: {
+        cli: "1.1.10-beta.7",
+        appRuntime: "1.0.0"
+    }
+} as const;
+
 export function versionRoutes(app: Fastify) {
+    app.get('/v1/capabilities', {
+        schema: {
+            response: {
+                200: z.object({
+                    apiVersion: z.number(),
+                    server: z.object({
+                        name: z.string(),
+                        version: z.string().nullable()
+                    }),
+                    messages: z.object({
+                        v3Post: z.literal(true),
+                        backwardPagination: z.literal(true),
+                        idempotentLocalId: z.literal(true),
+                        maxBatchSize: z.number(),
+                        maxPageSize: z.number()
+                    }),
+                    features: z.object({
+                        attachments: z.boolean(),
+                        voice: z.boolean(),
+                        kv: z.boolean()
+                    }),
+                    modelCatalog: z.object({
+                        version: z.number()
+                    }),
+                    minimums: z.object({
+                        cli: z.string(),
+                        appRuntime: z.string()
+                    })
+                })
+            }
+        }
+    }, async (_request, reply) => {
+        reply.send(SERVER_CAPABILITIES);
+    });
+
     app.post('/v1/version', {
         schema: {
             body: z.object({

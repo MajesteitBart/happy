@@ -62,6 +62,19 @@ Data persists in the `happy-data` Docker volume across container restarts.
 | `DATA_DIR` | No | `/data` | Base data directory |
 | `PGLITE_DIR` | No | `/data/pglite` | PGlite database directory |
 
+### Compatibility Endpoint
+
+Self-hosted servers expose `GET /v1/capabilities` without authentication so
+apps and CLIs can check feature support before enabling newer message flows.
+Current clients require:
+
+- `messages.v3Post`
+- `messages.backwardPagination`
+- `messages.idempotentLocalId`
+
+If a client reports that one of these capabilities is missing, upgrade the
+self-host server package or image before retrying message send/sync.
+
 ### Optional: External Services
 
 To use external Postgres or Redis instead of the embedded defaults, set:
