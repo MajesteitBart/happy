@@ -57,6 +57,7 @@ import { readFileBytes } from '@/utils/readFileBytes';
 import { Modal } from '@/modal';
 import { t } from '@/text';
 import { refreshServerCapabilities, requireV3MessageCapabilities, ServerCompatibilityError } from './apiCapabilities';
+import { syncLoadMetrics, syncLoadNowMs, type SyncLoadOperation } from './syncLoadMetrics';
 
 type V3GetSessionMessagesResponse = {
     messages: ApiMessage[];
@@ -1841,6 +1842,7 @@ class Sync {
 
             const knownLastSeq = this.sessionLastSeq.get(sessionId);
             const isInitialLoad = knownLastSeq === undefined;
+            syncLoadMetrics.start(sessionId);
             if (isInitialLoad) {
                 // Initial load. Pull only the most recent page so the user can
                 // start chatting immediately. Older history streams in lazily
@@ -1862,6 +1864,9 @@ class Sync {
             }
 
             storage.getState().applyMessagesLoaded(sessionId);
+            if (isInitialLoad) {
+                syncLoadMetrics.markFirstInteractive(sessionId);
+            }
             log.log(`💬 fetchMessages completed for session ${sessionId}`);
 
             if (isInitialLoad) {
@@ -1901,6 +1906,7 @@ class Sync {
 
             try {
                 await this.loadOlderMessages(sessionId);
+                syncLoadMetrics.recordBackgroundPrefetchPage(sessionId);
             } catch (error) {
                 log.log(`💬 prefetchOlderMessagesInBackground: error for ${sessionId}, stopping: ${String(error)}`);
                 return;
@@ -1914,6 +1920,7 @@ class Sync {
         sessionId: string,
         encryption: ReturnType<Encryption['getSessionEncryption']> & {}
     ) => {
+        const fetchStartedAt = syncLoadNowMs();
         const response = await apiSocket.request(
             `/v3/sessions/${sessionId}/messages?before_seq=${SEQ_BACKWARD_INITIAL_SENTINEL}&limit=100`
         );
@@ -1922,6 +1929,7 @@ class Sync {
         }
         const data = await response.json() as V3GetSessionMessagesResponse;
         const messages = Array.isArray(data.messages) ? data.messages : [];
+        this.recordFetchMetrics(sessionId, 'initial', fetchStartedAt, messages.length);
 
         await this.applyFetchedMessages(sessionId, encryption, messages);
 
@@ -1949,12 +1957,14 @@ class Sync {
     ) => {
         let afterSeq = fromSeq;
         while (true) {
+            const fetchStartedAt = syncLoadNowMs();
             const response = await apiSocket.request(`/v3/sessions/${sessionId}/messages?after_seq=${afterSeq}&limit=100`);
             if (!response.ok) {
                 throw new Error(`Failed to forward-sync ${sessionId}: ${response.status}`);
             }
             const data = await response.json() as V3GetSessionMessagesResponse;
             const messages = Array.isArray(data.messages) ? data.messages : [];
+            this.recordFetchMetrics(sessionId, 'forward', fetchStartedAt, messages.length);
 
             await this.applyFetchedMessages(sessionId, encryption, messages);
 
@@ -1979,6 +1989,7 @@ class Sync {
         messages: ApiMessage[]
     ) => {
         if (messages.length === 0) return;
+        const decryptStartedAt = syncLoadNowMs();
         const decryptedMessages = await encryption.decryptMessages(messages);
         const normalizedMessages: NormalizedMessage[] = [];
         for (let i = 0; i < decryptedMessages.length; i++) {
@@ -1989,6 +2000,7 @@ class Sync {
                 normalizedMessages.push(normalized);
             }
         }
+        syncLoadMetrics.recordDecryptBatch(sessionId, syncLoadNowMs() - decryptStartedAt, messages.length, normalizedMessages.length);
         if (normalizedMessages.length > 0) {
             this.applyMessages(sessionId, normalizedMessages);
         }
@@ -2026,6 +2038,7 @@ class Sync {
                 if (beforeSeq === undefined || beforeSeq <= 1) {
                     return;
                 }
+                const fetchStartedAt = syncLoadNowMs();
                 const response = await apiSocket.request(
                     `/v3/sessions/${sessionId}/messages?before_seq=${beforeSeq}&limit=100`
                 );
@@ -2034,6 +2047,7 @@ class Sync {
                 }
                 const data = await response.json() as V3GetSessionMessagesResponse;
                 const messages = Array.isArray(data.messages) ? data.messages : [];
+                this.recordFetchMetrics(sessionId, 'older', fetchStartedAt, messages.length);
 
                 await this.applyFetchedMessages(sessionId, encryption, messages);
 
@@ -2631,8 +2645,19 @@ class Sync {
     // Apply store
     //
 
+    private recordFetchMetrics = (
+        sessionId: string,
+        operation: SyncLoadOperation,
+        startedAt: number,
+        messageCount: number
+    ) => {
+        syncLoadMetrics.recordFetchPage(sessionId, operation, syncLoadNowMs() - startedAt, messageCount);
+    }
+
     private applyMessages = (sessionId: string, messages: NormalizedMessage[]) => {
+        const applyStartedAt = syncLoadNowMs();
         const result = storage.getState().applyMessages(sessionId, messages);
+        syncLoadMetrics.recordStoreApply(sessionId, syncLoadNowMs() - applyStartedAt, messages.length, result.changed.length);
         let m: Message[] = [];
         for (let messageId of result.changed) {
             const message = storage.getState().sessionMessages[sessionId].messagesMap[messageId];
