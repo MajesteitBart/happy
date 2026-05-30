@@ -34,6 +34,7 @@ import { resolveCodexExecutionPolicy } from './executionPolicy';
 import { mapCodexMcpMessageToSessionEnvelopes, mapCodexProcessorMessageToSessionEnvelopes } from './utils/sessionProtocolMapper';
 import { resumeExistingThread } from './resumeExistingThread';
 import { emitReadyIfIdle } from './emitReadyIfIdle';
+import { classifyCodexTurnFailure } from './turnFailureClassification';
 
 /**
  * Extracts a human-readable error from a codex task_complete/turn_aborted event.
@@ -162,6 +163,7 @@ export async function runCodex(opts: {
     let client!: CodexAppServerClient;
     let reasoningProcessor!: ReasoningProcessor;
     let abortInProgress: Promise<void> | null = null;
+    let abortGeneration = 0;
     const { session: initialSession, reconnectionHandle } = setupOfflineReconnection({
         api,
         sessionTag,
@@ -373,6 +375,7 @@ export async function runCodex(opts: {
         }
 
         logger.debug('[Codex] Abort requested - stopping current task');
+        abortGeneration += 1;
         session.sendLifecycleEvent({
             type: 'abort-requested',
             state: 'aborting',
@@ -778,6 +781,7 @@ export async function runCodex(opts: {
             // Display user messages in the UI
             messageBuffer.addMessage(message.message, 'user');
 
+            const turnAbortGeneration = abortGeneration;
             try {
                 // Map permission mode to approval policy and sandbox.
                 // With app-server, these are per-turn — no restart needed on mode change.
@@ -820,8 +824,28 @@ export async function runCodex(opts: {
                     logger.debug('[Codex] Turn aborted');
                 }
             } catch (error) {
-                // Only actual errors reach here (process crash, connection failure, etc.)
+                const failureClass = classifyCodexTurnFailure({
+                    turnAbortGeneration,
+                    currentAbortGeneration: abortGeneration,
+                    abortInProgress: abortInProgress !== null,
+                });
                 logger.warn('Error in codex session:', error);
+                if (failureClass === 'user-abort') {
+                    messageBuffer.addMessage('Aborted by user', 'status');
+                    session.sendLifecycleEvent({
+                        type: 'abort-requested',
+                        state: 'remote-active',
+                        inputOwner: 'remote',
+                        processLiveness: 'connected',
+                        turnState: 'cancelled',
+                        reason: 'user-abort',
+                        mode: 'remote',
+                    });
+                    session.sendSessionEvent({ type: 'message', message: 'Aborted by user' });
+                    continue;
+                }
+
+                // Only actual errors reach here (process crash, connection failure, etc.)
                 messageBuffer.addMessage('Process exited unexpectedly', 'status');
                 session.sendLifecycleEvent({
                     type: 'process-exited',
