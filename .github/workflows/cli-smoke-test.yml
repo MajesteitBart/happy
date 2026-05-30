@@ -139,16 +139,19 @@ jobs:
       run: pnpm --filter happy build
 
     - name: Pack packages
-      shell: cmd
+      shell: pwsh
       run: |
-        pnpm --filter @slopus/happy-wire pack --pack-destination packages\happy-wire
-        pnpm --filter happy pack --pack-destination packages\happy-cli
+        pnpm --filter @slopus/happy-wire pack --pack-destination packages/happy-wire
+        pnpm --filter happy pack --pack-destination packages/happy-cli
 
     - name: Install packed packages globally
-      shell: cmd
+      shell: pwsh
       run: |
-        for %%f in (packages\happy-wire\*.tgz) do npm install -g "%%f"
-        for %%f in (packages\happy-cli\*.tgz) do npm install -g "%%f"
+        $wirePackage = Get-ChildItem packages/happy-wire/*.tgz | Select-Object -First 1
+        $happyPackage = Get-ChildItem packages/happy-cli/*.tgz | Select-Object -First 1
+        if (-not $wirePackage) { throw "Packed @slopus/happy-wire tarball not found" }
+        if (-not $happyPackage) { throw "Packed happy tarball not found" }
+        npm install -g $wirePackage.FullName $happyPackage.FullName
 
     - name: Debug npm global installation structure
       shell: cmd
