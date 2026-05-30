@@ -181,7 +181,7 @@ describe('settings', () => {
                 showLineNumbersInToolViews: false,
                 wrapLinesInDiffs: true,
                 diffStyle: 'unified',
-                analyticsOptOut: false,
+                analyticsOptOut: true,
                 inferenceOpenAIKey: null,
                 experiments: false,
                 alwaysShowContextSize: false,

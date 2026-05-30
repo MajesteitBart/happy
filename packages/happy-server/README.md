@@ -10,7 +10,7 @@ Happy Server is the synchronization backbone for secure Claude Code clients. It 
 
 - 🔐 **Zero Knowledge** - The server stores encrypted data but has no ability to decrypt it
 - 🎯 **Minimal Surface** - Only essential features for secure sync, nothing more  
-- 🕵️ **Privacy First** - No analytics, no tracking, no data mining
+- 🕵️ **Privacy First** - The server package has no analytics, no tracking, and no data mining
 - 📖 **Open Source** - Transparent implementation you can audit and self-host
 - 🔑 **Cryptographic Auth** - No passwords stored, only public key signatures
 - ⚡ **Real-time Sync** - WebSocket-based synchronization across all your devices

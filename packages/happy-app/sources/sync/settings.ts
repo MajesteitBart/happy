@@ -90,7 +90,7 @@ export const settingsDefaults: Settings = {
     showLineNumbersInToolViews: false,
     wrapLinesInDiffs: true,
     diffStyle: 'unified',
-    analyticsOptOut: false,
+    analyticsOptOut: true,
     experiments: false,
     alwaysShowContextSize: false,
     agentInputEnterToSend: true,

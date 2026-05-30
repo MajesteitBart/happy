@@ -62,7 +62,13 @@ On your computer, run `happy` instead of `claude` or `happy codex` instead of `c
 - 🔔 **Push notifications** - Get alerted when Claude Code and Codex needs permission or encounters errors  
 - ⚡ **Switch devices instantly** - Take control from phone or desktop with one keypress
 - 🔐 **End-to-end encrypted** - Your code never leaves your devices unencrypted
-- 🛠️ **Open source** - Audit the code yourself. No telemetry, no tracking
+- 🛠️ **Open source** - Audit the code yourself. CLI and server packages do not include analytics; the app only initializes PostHog when a key is configured, and users can keep analytics disabled.
+
+## Privacy and analytics
+
+Happy's CLI, agent, and server packages do not send product analytics. The app includes optional PostHog support for anonymous usage analytics when a PostHog key is configured in the app build or runtime config.
+
+Analytics are disabled by default in user settings, can be toggled from app settings, and are also disabled when `EXPO_PUBLIC_DISABLE_ANALYTICS=1` or `window.__HAPPY_CONFIG__.disableAnalytics = true` is set. Self-hosted server mode injects `disableAnalytics: true` for the hosted web app.
 
 ## 📦 Project Components
 

@@ -8,5 +8,6 @@ const analyticsDisabled =
 
 export const tracking = (!analyticsDisabled && config.postHogKey) ? new PostHog(config.postHogKey, {
     host: 'https://us.i.posthog.com',
+    defaultOptIn: false,
     captureAppLifecycleEvents: true,
 }) : null;
