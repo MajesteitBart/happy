@@ -56,6 +56,7 @@ import { encryptBlob } from '@/encryption/blob';
 import { readFileBytes } from '@/utils/readFileBytes';
 import { Modal } from '@/modal';
 import { t } from '@/text';
+import { refreshServerCapabilities, requireV3MessageCapabilities, ServerCompatibilityError } from './apiCapabilities';
 
 type V3GetSessionMessagesResponse = {
     messages: ApiMessage[];
@@ -546,6 +547,19 @@ class Sync {
     }
 
     async sendMessage(sessionId: string, text: string, options?: SendMessageOptions) {
+        try {
+            await requireV3MessageCapabilities();
+        } catch (error) {
+            if (error instanceof ServerCompatibilityError) {
+                Modal.alert(
+                    'Server upgrade required',
+                    error.message,
+                    [{ text: t('common.ok'), style: 'cancel' }],
+                );
+                return;
+            }
+            throw error;
+        }
 
         // Get encryption — may not be ready yet if sessions are still syncing
         let encryption = this.encryption.getSessionEncryption(sessionId);
@@ -1762,6 +1776,7 @@ class Sync {
         const controller = new AbortController();
         this.sendAbortControllers.set(sessionId, controller);
         try {
+            await requireV3MessageCapabilities();
             const response = await apiSocket.request(`/v3/sessions/${sessionId}/messages`, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -1792,6 +1807,10 @@ class Sync {
                 this.sessionLastSeq.set(sessionId, maxSeq);
             }
         } catch (error) {
+            if (error instanceof ServerCompatibilityError) {
+                this.failPendingOutboxMessages(error.message);
+                return;
+            }
             this.maybeStartBackgroundSendWatchdog();
             throw error;
         } finally {
@@ -2695,6 +2714,7 @@ async function syncInit(credentials: AuthCredentials, restore: boolean) {
 
     // Initialize socket connection
     const API_ENDPOINT = getServerUrl();
+    await refreshServerCapabilities(API_ENDPOINT);
     apiSocket.initialize({ endpoint: API_ENDPOINT, token: credentials.token }, encryption);
 
     // Wire socket status to storage
