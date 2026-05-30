@@ -373,6 +373,15 @@ export async function runCodex(opts: {
         }
 
         logger.debug('[Codex] Abort requested - stopping current task');
+        session.sendLifecycleEvent({
+            type: 'abort-requested',
+            state: 'aborting',
+            inputOwner: 'remote',
+            processLiveness: 'connected',
+            turnState: 'aborting',
+            reason: 'user-abort',
+            mode: 'remote',
+        });
         abortInProgress = (async () => {
             try {
                 // Resolve any pending permission requests as 'abort' first.
@@ -389,6 +398,15 @@ export async function runCodex(opts: {
                     });
                     if (abortResult.forcedRestart) {
                         logger.warn('[Codex] Forced app-server restart after interrupt timeout');
+                        session.sendLifecycleEvent({
+                            type: 'recovering',
+                            state: 'recovering',
+                            inputOwner: 'remote',
+                            processLiveness: 'restarted',
+                            turnState: 'cancelled',
+                            reason: 'provider-error',
+                            mode: 'remote',
+                        });
                         session.sendSessionEvent({
                             type: 'message',
                             message: abortResult.resumedThread
@@ -439,6 +457,14 @@ export async function runCodex(opts: {
                 }));
                 
                 // Send session death message
+                session.sendLifecycleEvent({
+                    type: 'archived',
+                    state: 'archived',
+                    inputOwner: 'none',
+                    processLiveness: 'exited',
+                    reason: 'archive-requested',
+                    mode: 'remote',
+                });
                 session.sendSessionDeath();
                 await session.flush();
                 await session.close();
@@ -575,17 +601,52 @@ export async function runCodex(opts: {
             const failure = describeCodexFailure(msg);
             if (failure) {
                 messageBuffer.addMessage(`Task failed: ${failure}`, 'status');
+                session.sendLifecycleEvent({
+                    type: 'turn-failed',
+                    state: 'error',
+                    inputOwner: 'remote',
+                    processLiveness: 'connected',
+                    turnState: 'failed',
+                    reason: 'provider-error',
+                    mode: 'remote',
+                });
                 session.sendSessionEvent({ type: 'message', message: `Codex error: ${failure}` });
             } else {
                 messageBuffer.addMessage('Task completed', 'status');
+                session.sendLifecycleEvent({
+                    type: 'turn-completed',
+                    state: 'remote-active',
+                    inputOwner: 'remote',
+                    processLiveness: 'connected',
+                    turnState: 'completed',
+                    mode: 'remote',
+                });
             }
         } else if (msg.type === 'turn_aborted') {
             const failure = describeCodexFailure(msg);
             if (failure) {
                 messageBuffer.addMessage(`Turn aborted: ${failure}`, 'status');
+                session.sendLifecycleEvent({
+                    type: 'turn-failed',
+                    state: 'error',
+                    inputOwner: 'remote',
+                    processLiveness: 'connected',
+                    turnState: 'failed',
+                    reason: 'provider-error',
+                    mode: 'remote',
+                });
                 session.sendSessionEvent({ type: 'message', message: `Codex error: ${failure}` });
             } else {
                 messageBuffer.addMessage('Turn aborted', 'status');
+                session.sendLifecycleEvent({
+                    type: 'abort-requested',
+                    state: 'remote-active',
+                    inputOwner: 'remote',
+                    processLiveness: 'connected',
+                    turnState: 'cancelled',
+                    reason: 'user-abort',
+                    mode: 'remote',
+                });
             }
         }
 
@@ -762,6 +823,15 @@ export async function runCodex(opts: {
                 // Only actual errors reach here (process crash, connection failure, etc.)
                 logger.warn('Error in codex session:', error);
                 messageBuffer.addMessage('Process exited unexpectedly', 'status');
+                session.sendLifecycleEvent({
+                    type: 'process-exited',
+                    state: 'error',
+                    inputOwner: 'remote',
+                    processLiveness: 'exited',
+                    turnState: 'failed',
+                    reason: 'provider-error',
+                    mode: 'remote',
+                });
                 session.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
             } finally {
                 // Reset permission handler, reasoning processor, and diff processor

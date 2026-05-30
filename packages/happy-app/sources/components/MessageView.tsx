@@ -172,6 +172,45 @@ function AgentEventBlock(props: {
   event: AgentEvent;
   metadata: Metadata | null;
 }) {
+  const lifecycleEventText = (event: AgentEvent): string | null => {
+    if (event.type !== 'lifecycle') return null;
+    const modeSuffix = event.event.mode ? ` (${event.event.mode})` : '';
+    switch (event.event.type) {
+      case 'mode-changed':
+        return `Session switched${modeSuffix}`;
+      case 'abort-requested':
+        return 'Abort requested';
+      case 'process-exited':
+        return 'Session process exited';
+      case 'socket-disconnected':
+        return 'Connection lost';
+      case 'socket-reconnected':
+        return 'Connection restored';
+      case 'recovering':
+        return 'Syncing session state';
+      case 'recovered':
+        return 'Session state synced';
+      case 'archived':
+        return 'Session archived';
+      case 'turn-completed':
+        return 'Turn completed';
+      case 'turn-failed':
+        return 'Turn failed';
+      case 'created':
+        return 'Session created';
+      default:
+        return 'Session state updated';
+    }
+  };
+
+  const lifecycleText = lifecycleEventText(props.event);
+  if (lifecycleText) {
+    return (
+      <View style={styles.agentEventContainer}>
+        <Text style={styles.agentEventText}>{lifecycleText}</Text>
+      </View>
+    );
+  }
   if (props.event.type === 'switch') {
     return (
       <View style={styles.agentEventContainer}>

@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { isCuid } from '@paralleldrive/cuid2';
 import { MessageMetaSchema, MessageMeta } from './typesMessageMeta';
+import { lifecycleEventSchema } from '@slopus/happy-wire';
 
 //
 // Raw types
@@ -26,6 +27,9 @@ const agentEventSchema = z.discriminatedUnion('type', [z.object({
 }), z.object({
     type: z.literal('limit-reached'),
     endsAt: z.number(),
+}), z.object({
+    type: z.literal('lifecycle'),
+    event: lifecycleEventSchema,
 }), z.object({
     type: z.literal('ready'),
 })]);

@@ -173,6 +173,7 @@ describe('ApiSessionClient v3 messages API migration', () => {
         };
 
         mockIo.mockReturnValue(mockSocket);
+        mockAxiosPost.mockResolvedValue({ data: { messages: [] } });
     });
 
     afterEach(() => {
@@ -557,6 +558,64 @@ describe('ApiSessionClient v3 messages API migration', () => {
                 }
             }
         });
+    });
+
+    it('adds structured lifecycle diagnostics for mode switches', async () => {
+        const client = new ApiSessionClient('fake-token', session);
+        mockAxiosPost.mockResolvedValueOnce({
+            data: {
+                messages: [
+                    { id: 'msg-1', seq: 1, localId: 'local-1', createdAt: 1, updatedAt: 1 },
+                    { id: 'msg-2', seq: 2, localId: 'local-2', createdAt: 1, updatedAt: 1 }
+                ]
+            }
+        });
+
+        client.sendSessionEvent({ type: 'switch', mode: 'remote' }, 'switch-1');
+
+        await waitForCheck(() => {
+            expect(mockAxiosPost).toHaveBeenCalledTimes(1);
+        });
+
+        const payload = mockAxiosPost.mock.calls[0][1];
+        const decrypted = payload.messages.map((message: { content: string }) => decrypt(
+            session.encryptionKey,
+            session.encryptionVariant,
+            decodeBase64(message.content)
+        ));
+
+        expect(decrypted).toEqual([
+            {
+                role: 'agent',
+                content: {
+                    id: 'switch-1',
+                    type: 'event',
+                    data: {
+                        type: 'switch',
+                        mode: 'remote'
+                    }
+                }
+            },
+            expect.objectContaining({
+                role: 'agent',
+                content: expect.objectContaining({
+                    type: 'event',
+                    data: expect.objectContaining({
+                        type: 'lifecycle',
+                        event: expect.objectContaining({
+                            version: 1,
+                            type: 'mode-changed',
+                            state: 'remote-active',
+                            inputOwner: 'remote',
+                            processLiveness: 'connected',
+                            turnState: 'idle',
+                            reason: 'local-to-remote',
+                            mode: 'remote'
+                        })
+                    })
+                })
+            })
+        ]);
     });
 
     it('fetchMessages uses after_seq=0 initially and routes user messages to callback', async () => {

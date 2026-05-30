@@ -13,7 +13,7 @@ import { RpcHandlerManager } from './rpc/RpcHandlerManager';
 import { registerCommonHandlers } from '../modules/common/registerCommonHandlers';
 import { calculateCost } from '@/utils/pricing';
 import { shouldReconnect } from '@/utils/lidState';
-import { type SessionEnvelope, type SessionTurnEndStatus } from '@slopus/happy-wire';
+import { createLifecycleEvent, type LifecycleEvent, type LifecycleEventInput, type LifecycleProvider, type LifecycleReason, type LifecycleStartedBy, type SessionEnvelope, type SessionTurnEndStatus } from '@slopus/happy-wire';
 import {
     closeClaudeTurnWithStatus,
     mapClaudeLogMessageToSessionEnvelopes,
@@ -48,6 +48,13 @@ export type ACPMessageData =
     | { type: 'token_count';[key: string]: unknown };
 
 export type ACPProvider = 'gemini' | 'codex' | 'claude' | 'opencode';
+
+type SessionEvent =
+    | { type: 'switch', mode: 'local' | 'remote' }
+    | { type: 'message', message: string }
+    | { type: 'permission-mode-changed', mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' }
+    | { type: 'ready' }
+    | { type: 'lifecycle', event: LifecycleEvent };
 
 type V3SessionMessage = {
     id: string;
@@ -116,6 +123,9 @@ export class ApiSessionClient extends EventEmitter {
     private pendingOutbox: Array<{ content: string; localId: string }> = [];
     private readonly sendSync: InvalidateSync;
     private readonly receiveSync: InvalidateSync;
+    private hasConnectedOnce = false;
+    private recoveryPending = false;
+    private recoveryReason: LifecycleReason | null = null;
 
     constructor(token: string, session: Session) {
         super()
@@ -163,11 +173,24 @@ export class ApiSessionClient extends EventEmitter {
 
         this.socket.on('connect', () => {
             logger.debug('Socket connected successfully');
+            const wasReconnect = this.hasConnectedOnce;
+            this.hasConnectedOnce = true;
             if (this.reconnectInterval) {
                 clearInterval(this.reconnectInterval);
                 this.reconnectInterval = null;
             }
             this.rpcHandlerManager.onSocketConnect(this.socket);
+            if (wasReconnect) {
+                this.recoveryPending = true;
+                this.recoveryReason = 'socket-reconnect';
+                this.sendLifecycleEvent({
+                    type: 'socket-reconnected',
+                    state: 'recovering',
+                    processLiveness: 'connected',
+                    reason: 'socket-reconnect',
+                    lastAppliedSeq: this.lastSeq,
+                });
+            }
             this.receiveSync.invalidate();
         })
 
@@ -178,12 +201,34 @@ export class ApiSessionClient extends EventEmitter {
 
         this.socket.on('disconnect', (reason) => {
             logger.debug(`[API] Socket disconnected: ${reason}`);
+            if (this.hasConnectedOnce) {
+                this.recoveryPending = true;
+                this.recoveryReason = 'socket-disconnect';
+                this.sendLifecycleEvent({
+                    type: 'socket-disconnected',
+                    state: 'recovering',
+                    processLiveness: 'disconnected',
+                    reason: 'socket-disconnect',
+                    lastAppliedSeq: this.lastSeq,
+                });
+            }
             this.rpcHandlerManager.onSocketDisconnect();
             this.startSmartReconnect();
         })
 
         this.socket.on('connect_error', (error) => {
             logger.debug('[API] Socket connection error:', error);
+            if (this.hasConnectedOnce) {
+                this.recoveryPending = true;
+                this.recoveryReason = 'socket-disconnect';
+                this.sendLifecycleEvent({
+                    type: 'socket-disconnected',
+                    state: 'recovering',
+                    processLiveness: 'disconnected',
+                    reason: 'socket-disconnect',
+                    lastAppliedSeq: this.lastSeq,
+                });
+            }
             this.rpcHandlerManager.onSocketDisconnect();
             this.startSmartReconnect();
         })
@@ -205,6 +250,18 @@ export class ApiSessionClient extends EventEmitter {
                         return;
                     }
                     if (typeof messageSeq !== 'number' || messageSeq !== this.lastSeq + 1 || data.body.message.content.t !== 'encrypted') {
+                        const isForwardGap = typeof messageSeq === 'number' && messageSeq > this.lastSeq + 1;
+                        if (isForwardGap) {
+                            this.recoveryPending = true;
+                            this.recoveryReason = 'seq-gap';
+                            this.sendLifecycleEvent({
+                                type: 'recovering',
+                                state: 'recovering',
+                                reason: 'seq-gap',
+                                seq: messageSeq,
+                                lastAppliedSeq: this.lastSeq,
+                            });
+                        }
                         this.receiveSync.invalidate();
                         return;
                     }
@@ -450,6 +507,18 @@ export class ApiSessionClient extends EventEmitter {
                 break;
             }
         }
+        if (this.recoveryPending) {
+            this.recoveryPending = false;
+            const recoveryReason = this.recoveryReason ?? 'unknown';
+            this.recoveryReason = null;
+            this.sendLifecycleEvent({
+                type: 'recovered',
+                state: this.agentState?.controlledByUser ? 'local-active' : 'remote-active',
+                processLiveness: 'connected',
+                reason: recoveryReason,
+                lastAppliedSeq: this.lastSeq,
+            });
+        }
     }
 
     private static readonly MAX_OUTBOX_BATCH_SIZE = 50;
@@ -597,15 +666,23 @@ export class ApiSessionClient extends EventEmitter {
         this.enqueueMessage(content);
     }
 
-    sendSessionEvent(event: {
-        type: 'switch', mode: 'local' | 'remote'
-    } | {
-        type: 'message', message: string
-    } | {
-        type: 'permission-mode-changed', mode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'
-    } | {
-        type: 'ready'
-    }, id?: string) {
+    private providerForLifecycle(): LifecycleProvider {
+        const flavor = this.metadata?.flavor;
+        if (flavor === 'claude' || flavor === 'codex' || flavor === 'gemini' || flavor === 'openclaw' || flavor === 'opencode') {
+            return flavor;
+        }
+        return 'unknown';
+    }
+
+    private startedByForLifecycle(): LifecycleStartedBy {
+        const startedBy = this.metadata?.startedBy;
+        if (startedBy === 'terminal' || startedBy === 'daemon') {
+            return startedBy;
+        }
+        return 'unknown';
+    }
+
+    private enqueueSessionEvent(event: SessionEvent, id?: string, invalidate = true) {
         let content = {
             role: 'agent',
             content: {
@@ -614,7 +691,43 @@ export class ApiSessionClient extends EventEmitter {
                 data: event
             }
         };
-        this.enqueueMessage(content);
+        this.enqueueMessage(content, invalidate);
+    }
+
+    private buildLifecycleEvent(input: LifecycleEventInput): LifecycleEvent {
+        return createLifecycleEvent({
+            provider: this.providerForLifecycle(),
+            startedBy: this.startedByForLifecycle(),
+            metadataVersion: this.metadataVersion,
+            agentStateVersion: this.agentStateVersion,
+            ...input,
+        });
+    }
+
+    sendLifecycleEvent(input: LifecycleEventInput, id?: string) {
+        const event = this.buildLifecycleEvent(input);
+        this.enqueueSessionEvent({ type: 'lifecycle', event }, id);
+    }
+
+    sendSessionEvent(event: SessionEvent, id?: string) {
+        if (event.type === 'switch') {
+            this.enqueueSessionEvent(event, id, false);
+            this.enqueueSessionEvent({
+                type: 'lifecycle',
+                event: this.buildLifecycleEvent({
+                    type: 'mode-changed',
+                    state: event.mode === 'local' ? 'local-active' : 'remote-active',
+                    inputOwner: event.mode === 'local' ? 'local' : 'remote',
+                    processLiveness: 'connected',
+                    turnState: 'idle',
+                    reason: event.mode === 'local' ? 'remote-to-local' : 'local-to-remote',
+                    mode: event.mode,
+                    lastAppliedSeq: this.lastSeq,
+                })
+            });
+            return;
+        }
+        this.enqueueSessionEvent(event, id);
     }
 
     /**

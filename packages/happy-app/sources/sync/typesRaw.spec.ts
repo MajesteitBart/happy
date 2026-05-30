@@ -935,6 +935,65 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
             }
         });
 
+        it('handles structured lifecycle event messages without free-form diagnostics', () => {
+            const eventMessage = {
+                role: 'agent',
+                content: {
+                    type: 'event',
+                    id: 'event-123',
+                    data: {
+                        type: 'lifecycle',
+                        event: {
+                            version: 1,
+                            type: 'process-exited',
+                            state: 'error',
+                            at: 1000,
+                            processLiveness: 'exited',
+                            turnState: 'failed',
+                            reason: 'provider-error',
+                            provider: 'codex'
+                        }
+                    }
+                }
+            };
+
+            const result = RawRecordSchema.safeParse(eventMessage);
+
+            expect(result.success).toBe(true);
+            if (result.success && result.data.content.type === 'event') {
+                expect(result.data.content.data.type).toBe('lifecycle');
+                if (result.data.content.data.type === 'lifecycle') {
+                    expect(result.data.content.data.event.type).toBe('process-exited');
+                }
+            }
+        });
+
+        it('rejects lifecycle events that include prompt or path diagnostics', () => {
+            const eventMessage = {
+                role: 'agent',
+                content: {
+                    type: 'event',
+                    id: 'event-123',
+                    data: {
+                        type: 'lifecycle',
+                        event: {
+                            version: 1,
+                            type: 'process-exited',
+                            state: 'error',
+                            at: 1000,
+                            reason: 'provider-error',
+                            prompt: 'private prompt',
+                            path: '/private/project'
+                        }
+                    }
+                }
+            };
+
+            const result = RawRecordSchema.safeParse(eventMessage);
+
+            expect(result.success).toBe(false);
+        });
+
         it('handles user role messages with text content', () => {
             const userMessage = {
                 role: 'user',

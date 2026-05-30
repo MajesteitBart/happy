@@ -141,6 +141,15 @@ export async function claudeLocalLauncher(session: Session): Promise<LauncherRes
                     break;
                 }
                 if (!exitReason) {
+                    session.client.sendLifecycleEvent({
+                        type: 'process-exited',
+                        state: 'error',
+                        inputOwner: 'local',
+                        processLiveness: 'exited',
+                        turnState: 'failed',
+                        reason: 'provider-error',
+                        mode: 'local',
+                    });
                     session.client.sendSessionEvent({ type: 'message', message: 'Process exited unexpectedly' });
                     continue;
                 } else {
