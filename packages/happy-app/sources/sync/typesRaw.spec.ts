@@ -1125,6 +1125,44 @@ describe('Zod Transform - WOLOG Content Normalization', () => {
                 expect(result.data.content.data.isSidechain).toBe(true);
             }
         });
+
+        it('normalizes compact summaries into collapsed protocol events', () => {
+            const normalized = normalizeRawMessage('compact-summary-1', null, 1000, {
+                role: 'agent',
+                content: {
+                    type: 'output',
+                    data: {
+                        type: 'assistant',
+                        message: {
+                            role: 'assistant',
+                            model: 'claude-3',
+                            content: [{
+                                type: 'text',
+                                text: 'Long internal compaction summary that should not render as chat text',
+                            }],
+                        },
+                        uuid: 'compact-summary-uuid',
+                        parentUuid: null,
+                        isSidechain: false,
+                        isCompactSummary: true,
+                        isMeta: false,
+                    },
+                },
+            });
+
+            expect(normalized).toEqual({
+                id: 'compact-summary-1',
+                localId: null,
+                createdAt: 1000,
+                role: 'event',
+                content: {
+                    type: 'message',
+                    message: 'Compaction completed',
+                },
+                isSidechain: false,
+                meta: undefined,
+            });
+        });
     });
 
     describe('WOLOG: Cross-agent format handling', () => {

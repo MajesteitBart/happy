@@ -3,7 +3,7 @@ import { View, Text, Pressable, Platform } from "react-native";
 import { StyleSheet } from 'react-native-unistyles';
 import { MarkdownView } from "./markdown/MarkdownView";
 import { t } from '@/text';
-import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage } from "@/sync/typesMessage";
+import { Message, UserTextMessage, AgentTextMessage, ToolCallMessage, CommandMessage, SystemEventMessage } from "@/sync/typesMessage";
 import { Metadata } from "@/sync/storageTypes";
 import { ToolView } from "./tools/ToolView";
 import { AgentEvent } from "@/sync/typesRaw";
@@ -11,6 +11,7 @@ import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
 import { layout } from "./layout";
 import { parseLocalCommandMessage, isUserSlashCommandEcho } from './parseLocalCommandMessage';
+import { classifyCommand, getCommandDisplayText, getSystemEventDisplayText } from "@/sync/messageTaxonomy";
 
 
 export const MessageView = React.memo((props: {
@@ -63,6 +64,12 @@ function RenderBlock(props: {
 
     case 'agent-text':
       return <AgentTextBlock message={props.message} sessionId={props.sessionId} />;
+
+    case 'command':
+      return <CommandBlock message={props.message} />;
+
+    case 'system-event':
+      return <SystemEventBlock message={props.message} />;
 
     case 'tool-call':
       return <ToolCallBlock
@@ -123,16 +130,14 @@ function UserTextBlock(props: {
     return null;
   }
   if (parsed.kind === 'command-run') {
-    return (
-      <View style={styles.userMessageContainer}>
-        <View style={styles.commandChip}>
-          <Text style={styles.commandChipText}>/{parsed.commandName}</Text>
-          {parsed.args ? (
-            <Text style={styles.commandChipArgs} numberOfLines={2}>{parsed.args}</Text>
-          ) : null}
-        </View>
-      </View>
-    );
+    return <CommandBlock message={{
+      id: props.message.id,
+      localId: props.message.localId,
+      createdAt: props.message.createdAt,
+      kind: 'command',
+      command: classifyCommand(parsed.commandName, parsed.args),
+      meta: props.message.meta,
+    }} />;
   }
 
   return (
@@ -144,6 +149,25 @@ function UserTextBlock(props: {
       >
         <MarkdownView markdown={parsed.text} onOptionPress={handleOptionPress} sessionId={props.sessionId} />
       </Pressable>
+    </View>
+  );
+}
+
+function CommandBlock(props: { message: CommandMessage }) {
+  const commandText = getCommandDisplayText(props.message.command);
+  return (
+    <View style={styles.userMessageContainer}>
+      <View
+        style={styles.commandChip}
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={commandText}
+      >
+        <Text style={styles.commandChipText}>/{props.message.command.name}</Text>
+        {props.message.command.args ? (
+          <Text style={styles.commandChipArgs} numberOfLines={2}>{props.message.command.args}</Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -164,6 +188,20 @@ function AgentTextBlock(props: {
   return (
     <View style={styles.agentMessageContainer}>
       <MarkdownView markdown={props.message.text} onOptionPress={handleOptionPress} sessionId={props.sessionId} />
+    </View>
+  );
+}
+
+function SystemEventBlock(props: { message: SystemEventMessage }) {
+  const text = getSystemEventDisplayText(props.message.event);
+  return (
+    <View
+      style={styles.agentEventContainer}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={text}
+    >
+      <Text style={styles.agentEventText}>{text}</Text>
     </View>
   );
 }

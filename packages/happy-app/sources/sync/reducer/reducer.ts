@@ -110,12 +110,14 @@
  * - Updated internal state for future processing
  */
 
+import { CommandMessagePayload, SystemEventPayload, classifyCommand, classifySystemEvent } from "../messageTaxonomy";
 import { Message, ToolCall } from "../typesMessage";
 import { AgentEvent, NormalizedMessage, UsageData } from "../typesRaw";
 import { createTracer, traceMessages, TracerState } from "./reducerTracer";
 import { AgentState, TodoItem, TodoItemsSchema } from "../storageTypes";
 import { MessageMeta } from "../typesMessageMeta";
 import { parseMessageAsEvent } from "./messageToEvent";
+import { parseLocalCommandMessage } from "../localCommandMessage";
 
 type ReducerMessage = {
     id: string;
@@ -126,6 +128,8 @@ type ReducerMessage = {
     isThinking?: boolean;
     event: AgentEvent | null;
     tool: ToolCall | null;
+    command?: CommandMessagePayload | null;
+    systemEvent?: SystemEventPayload | null;
     meta?: MessageMeta;
     claudeUuid?: string;
 }
@@ -374,6 +378,7 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
             event: event,
             tool: null,
             text: null,
+            systemEvent: classifySystemEvent(event),
             meta: message.meta,
         });
         changed.add(mid);
@@ -655,6 +660,15 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                 continue;
             }
 
+            const parsedCommand = parseLocalCommandMessage(msg.content.text);
+            if (parsedCommand.kind === 'caveat') {
+                if (msg.localId) {
+                    state.localIds.set(msg.localId, msg.id);
+                }
+                state.messageIds.set(msg.id, msg.id);
+                continue;
+            }
+
             // Create a new message
             let mid = allocateId();
             state.messages.set(mid, {
@@ -662,9 +676,12 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                 realID: msg.id,
                 role: 'user',
                 createdAt: msg.createdAt,
-                text: msg.content.text,
+                text: parsedCommand.kind === 'text' ? parsedCommand.text : null,
                 tool: null,
                 event: null,
+                command: parsedCommand.kind === 'command-run'
+                    ? classifyCommand(parsedCommand.commandName, parsedCommand.args)
+                    : null,
                 meta: msg.meta,
                 claudeUuid: msg.claudeUuid,
             });
@@ -1092,6 +1109,7 @@ export function reducer(state: ReducerState, messages: NormalizedMessage[], agen
                 event: msg.content,
                 tool: null,
                 text: null,
+                systemEvent: classifySystemEvent(msg.content),
                 meta: msg.meta,
             });
             changed.add(mid);
@@ -1159,6 +1177,27 @@ function processUsageData(state: ReducerState, usage: UsageData, timestamp: numb
 
 
 function convertReducerMessageToMessage(reducerMsg: ReducerMessage, state: ReducerState): Message | null {
+    if (reducerMsg.command) {
+        return {
+            id: reducerMsg.id,
+            localId: null,
+            createdAt: reducerMsg.createdAt,
+            kind: 'command',
+            command: reducerMsg.command,
+            meta: reducerMsg.meta
+        };
+    }
+
+    if (reducerMsg.systemEvent) {
+        return {
+            id: reducerMsg.id,
+            createdAt: reducerMsg.createdAt,
+            kind: 'system-event',
+            event: reducerMsg.systemEvent,
+            meta: reducerMsg.meta
+        };
+    }
+
     if (reducerMsg.role === 'user' && reducerMsg.text !== null) {
         return {
             id: reducerMsg.id,

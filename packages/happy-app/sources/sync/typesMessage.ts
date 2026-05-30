@@ -1,5 +1,6 @@
 import { AgentEvent } from "./typesRaw";
 import { MessageMeta } from "./typesMessageMeta";
+import type { CommandMessagePayload, SystemEventPayload } from "./messageTaxonomy";
 
 export type ToolCall = {
     name: string;
@@ -38,6 +39,23 @@ export type UserTextMessage = {
     claudeUuid?: string;
 }
 
+export type CommandMessage = {
+    kind: 'command';
+    id: string;
+    localId: string | null;
+    createdAt: number;
+    command: CommandMessagePayload;
+    meta?: MessageMeta;
+}
+
+export type SystemEventMessage = {
+    kind: 'system-event';
+    id: string;
+    createdAt: number;
+    event: SystemEventPayload;
+    meta?: MessageMeta;
+}
+
 export type ModeSwitchMessage = {
     kind: 'agent-event';
     id: string;
@@ -66,4 +84,10 @@ export type ToolCallMessage = {
     meta?: MessageMeta;
 }
 
-export type Message = UserTextMessage | AgentTextMessage | ToolCallMessage | ModeSwitchMessage;
+export type Message =
+    | UserTextMessage
+    | CommandMessage
+    | SystemEventMessage
+    | AgentTextMessage
+    | ToolCallMessage
+    | ModeSwitchMessage;

@@ -771,9 +771,21 @@ export function normalizeRawMessage(id: string, localId: string | null, createdA
                 return null;
             }
 
-            // Skip compact summary messages
+            // Collapse compact summaries into a small system event instead of
+            // rendering the generated summary body as a normal assistant reply.
             if (raw.content.data.isCompactSummary) {
-                return null;
+                return {
+                    id,
+                    localId,
+                    createdAt,
+                    role: 'event',
+                    content: {
+                        type: 'message',
+                        message: 'Compaction completed',
+                    },
+                    isSidechain: false,
+                    meta: raw.meta,
+                } satisfies NormalizedMessage;
             }
 
             // Handle Result messages (e.g. slash command errors like "Unknown skill: mcp")

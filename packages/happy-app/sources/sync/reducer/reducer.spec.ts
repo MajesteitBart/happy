@@ -3044,6 +3044,93 @@ describe('reducer', () => {
         });
     });
 
+    describe('message taxonomy', () => {
+        it('collapses local command wrappers into command messages', () => {
+            const state = createReducer();
+            const result = reducer(state, [{
+                id: 'cmd-1',
+                localId: null,
+                createdAt: 1000,
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text: '<command-message>compact</command-message><command-name>/compact</command-name>',
+                },
+                isSidechain: false,
+            }]);
+
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].kind).toBe('command');
+            if (result.messages[0].kind === 'command') {
+                expect(result.messages[0].command).toEqual({
+                    type: 'command',
+                    name: 'compact',
+                    args: undefined,
+                });
+            }
+        });
+
+        it('collapses skill wrappers without leaking internal instruction markdown', () => {
+            const state = createReducer();
+            const longSkillBody = [
+                'Use this skill when creating a durable project plan.',
+                '## Instructions',
+                '- Read repository context.',
+                '- Write detailed workstreams.',
+            ].join('\n').repeat(50);
+            const result = reducer(state, [{
+                id: 'skill-1',
+                localId: null,
+                createdAt: 1000,
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text:
+                        `<command-message>${longSkillBody}</command-message>` +
+                        '<command-name>/skill:planning</command-name>' +
+                        '<command-args>happy safety workstreams</command-args>',
+                },
+                isSidechain: false,
+            }]);
+
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].kind).toBe('command');
+            expect(JSON.stringify(result.messages)).not.toContain('Use this skill');
+            if (result.messages[0].kind === 'command') {
+                expect(result.messages[0].command).toEqual({
+                    type: 'skill-invocation',
+                    name: 'skill:planning',
+                    args: 'happy safety workstreams',
+                });
+            }
+        });
+
+        it('renders compaction protocol messages as collapsed system events', () => {
+            const state = createReducer();
+            const result = reducer(state, [{
+                id: 'compact-event-1',
+                localId: null,
+                createdAt: 1000,
+                role: 'event',
+                content: {
+                    type: 'message',
+                    message: 'Compaction completed',
+                },
+                isSidechain: false,
+            }]);
+
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].kind).toBe('system-event');
+            if (result.messages[0].kind === 'system-event') {
+                expect(result.messages[0].event).toEqual({
+                    type: 'compaction',
+                    label: 'Session compacted',
+                    collapsed: true,
+                });
+            }
+        });
+    });
+
     describe('TodoWrite latestTodos handling', () => {
         it('does not update todos from a running TodoWrite input', () => {
             const state = createReducer();

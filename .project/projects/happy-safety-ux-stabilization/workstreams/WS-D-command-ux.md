@@ -2,9 +2,9 @@
 id: WS-D
 name: Command Rendering and UX Integrity
 owner: Clark
-status: active
+status: done
 created: 2026-05-30T13:39:41Z
-updated: 2026-05-30T15:50:57Z
+updated: 2026-05-30T17:00:31Z
 operating_mode: scoped-change
 ---
 
