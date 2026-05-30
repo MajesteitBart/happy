@@ -120,6 +120,13 @@ describe('getProjectPath', () => {
             const result = getProjectPath(workingDir);
             expect(result).toBe(join('/test/home/.claude', 'projects', '-Users-steve-projects-it-s-done-'));
         });
+
+        it('should replace spaces, punctuation, and non-ASCII characters under custom config dir', () => {
+            process.env.CLAUDE_CONFIG_DIR = '/custom/claude/config';
+            const workingDir = '/Users/test/projects/caf\u00e9 demo/@client [draft]';
+            const result = getProjectPath(workingDir);
+            expect(result).toBe(join('/custom/claude/config', 'projects', '-Users-test-projects-caf--demo--client--draft-'));
+        });
     });
 
     describe('CLAUDE_CONFIG_DIR support', () => {
