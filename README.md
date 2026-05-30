@@ -52,6 +52,11 @@ happy claude
 happy codex
 ```
 
+For Codex, Happy uses the local Codex CLI subscription auth by default. Run
+`codex login` once on the machine, then start sessions with `happy codex`.
+Server-stored OpenAI auth is optional and only used when you explicitly run
+`happy connect codex --upload-token`.
+
 ## How does it work?
 
 On your computer, run `happy` instead of `claude` or `happy codex` instead of `codex` to start your AI through our wrapper. When you want to control your coding agent from your phone, it restarts the session in remote mode. To switch back to your computer, just press any key on your keyboard.

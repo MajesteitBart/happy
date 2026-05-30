@@ -13,7 +13,8 @@ import { decodeJwtPayload } from './connect/utils';
  * Handle connect subcommand
  * 
  * Implements connect subcommands for storing AI vendor API keys:
- * - connect codex: Store OpenAI API key in Happy cloud
+ * - connect codex: Explain local Codex subscription auth
+ * - connect codex --upload-token: Store OpenAI OAuth token in Happy cloud
  * - connect claude: Store Anthropic API key in Happy cloud
  * - connect gemini: Store Gemini API key in Happy cloud
  * - connect help: Show help for connect command
@@ -28,7 +29,7 @@ export async function handleConnectCommand(args: string[]): Promise<void> {
 
     switch (subcommand.toLowerCase()) {
         case 'codex':
-            await handleConnectVendor('codex', 'OpenAI');
+            await handleConnectCodex(args.slice(1));
             break;
         case 'claude':
             await handleConnectVendor('claude', 'Anthropic');
@@ -51,27 +52,76 @@ function showConnectHelp(): void {
 ${chalk.bold('happy connect')} - Connect AI vendor API keys to Happy cloud
 
 ${chalk.bold('Usage:')}
-  happy connect codex        Store your Codex API key in Happy cloud
+  happy connect codex        Show Codex local subscription-auth setup
+  happy connect codex --upload-token
+                             Store your Codex OAuth token in Happy cloud
   happy connect claude       Store your Anthropic API key in Happy cloud
   happy connect gemini       Store your Gemini API key in Happy cloud
   happy connect status       Show connection status for all vendors
   happy connect help         Show this help message
 
 ${chalk.bold('Description:')}
-  The connect command allows you to securely store your AI vendor API keys
-  in Happy cloud. This enables you to use these services through Happy
-  without exposing your API keys locally.
+  Codex uses local Codex CLI subscription auth by default. Cloud token
+  upload is optional and must be requested explicitly.
+
+  Claude and Gemini connect commands store vendor OAuth/API tokens in Happy
+  cloud so remote sessions can use those services.
 
 ${chalk.bold('Examples:')}
   happy connect codex
+  happy connect codex --upload-token
   happy connect claude
   happy connect gemini
   happy connect status
 
 ${chalk.bold('Notes:')} 
   • You must be authenticated with Happy first (run 'happy auth login')
-  • API keys are encrypted and stored securely in Happy cloud
+  • Codex local mode does not upload OpenAI tokens
+  • Uploaded vendor tokens are encrypted and stored securely in Happy cloud
   • You can manage your stored keys at app.happy.engineering
+`);
+}
+
+async function handleConnectCodex(args: string[]): Promise<void> {
+    if (args.includes('--help') || args.includes('-h')) {
+        showCodexConnectHelp();
+        return;
+    }
+
+    const uploadRequested = args.includes('--upload-token') || args.includes('--cloud-token');
+    const unknownArgs = args.filter(arg => arg !== '--upload-token' && arg !== '--cloud-token');
+
+    if (unknownArgs.length > 0) {
+        console.error(chalk.red(`Unknown codex connect option: ${unknownArgs.join(' ')}`));
+        showCodexConnectHelp();
+        process.exit(1);
+    }
+
+    if (!uploadRequested) {
+        showCodexConnectHelp();
+        return;
+    }
+
+    await handleConnectVendor('codex', 'OpenAI/Codex');
+}
+
+function showCodexConnectHelp(): void {
+    console.log(`
+${chalk.bold('happy connect codex')} - Codex authentication
+
+${chalk.bold('Default path: local Codex subscription auth')}
+  Happy runs the local Codex CLI for normal Codex sessions. It uses whatever
+  auth the Codex CLI already has on this machine.
+
+${chalk.bold('Setup:')}
+  codex login
+  happy codex
+
+${chalk.bold('Optional cloud token upload:')}
+  happy connect codex --upload-token
+
+Only use cloud token upload if you intentionally need server-stored OpenAI
+auth for a remote/cloud flow. It is not required for normal local Codex use.
 `);
 }
 
@@ -92,6 +142,7 @@ async function handleConnectVendor(vendor: 'codex' | 'claude' | 'gemini', displa
     // Handle vendor authentication
     if (vendor === 'codex') {
         console.log('🚀 Registering Codex token with server');
+        console.log(chalk.yellow('  This uploads OpenAI OAuth material to Happy cloud. For local Codex subscription auth, use "codex login" and "happy codex" instead.'));
         const codexAuthTokens = await authenticateCodex();
         await api.registerVendorToken('openai', { oauth: codexAuthTokens });
         console.log('✅ Codex token registered with server');

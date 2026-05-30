@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ApiClient } from './api';
+import { ApiClient, DEFAULT_VENDOR_TOKEN_REGISTRATION_TIMEOUT_MS, vendorTokenRegistrationTimeoutMs } from './api';
 import axios from 'axios';
 import { connectionState } from '@/utils/serverConnectionErrors';
 
@@ -308,6 +308,46 @@ describe('Api server error handling', () => {
             );
 
             consoleSpy.mockRestore();
+        });
+    });
+
+    describe('registerVendorToken', () => {
+        const originalTimeoutEnv = process.env.HAPPY_VENDOR_TOKEN_REGISTER_TIMEOUT_MS;
+
+        afterEach(() => {
+            if (originalTimeoutEnv === undefined) {
+                delete process.env.HAPPY_VENDOR_TOKEN_REGISTER_TIMEOUT_MS;
+            } else {
+                process.env.HAPPY_VENDOR_TOKEN_REGISTER_TIMEOUT_MS = originalTimeoutEnv;
+            }
+        });
+
+        it('uses a longer default timeout for vendor token registration', async () => {
+            mockPost.mockResolvedValue({ status: 200, data: {} });
+
+            await api.registerVendorToken('openai', { oauth: { access_token: 'redacted' } });
+
+            expect(mockPost).toHaveBeenCalledWith(
+                'https://api.cluster-fluster.com/v1/connect/openai/register',
+                { token: JSON.stringify({ oauth: { access_token: 'redacted' } }) },
+                expect.objectContaining({
+                    timeout: DEFAULT_VENDOR_TOKEN_REGISTRATION_TIMEOUT_MS,
+                }),
+            );
+        });
+
+        it('allows the vendor token registration timeout to be configured', async () => {
+            process.env.HAPPY_VENDOR_TOKEN_REGISTER_TIMEOUT_MS = '120000';
+
+            expect(vendorTokenRegistrationTimeoutMs()).toBe(120000);
+        });
+
+        it('explains Codex local auth when OpenAI token upload times out', async () => {
+            mockPost.mockRejectedValue({ code: 'ECONNABORTED', isAxiosError: true });
+
+            await expect(
+                api.registerVendorToken('openai', { oauth: { access_token: 'redacted' } }),
+            ).rejects.toThrow('Normal Codex usage uses local Codex CLI subscription auth');
         });
     });
 });

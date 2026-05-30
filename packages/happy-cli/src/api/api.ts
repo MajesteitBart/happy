@@ -10,6 +10,58 @@ import chalk from 'chalk';
 import { Credentials } from '@/persistence';
 import { connectionState, isNetworkError } from '@/utils/serverConnectionErrors';
 
+export const DEFAULT_VENDOR_TOKEN_REGISTRATION_TIMEOUT_MS = 60_000;
+
+export function vendorTokenRegistrationTimeoutMs(): number {
+  const raw = process.env.HAPPY_VENDOR_TOKEN_REGISTER_TIMEOUT_MS;
+  if (!raw) {
+    return DEFAULT_VENDOR_TOKEN_REGISTRATION_TIMEOUT_MS;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_VENDOR_TOKEN_REGISTRATION_TIMEOUT_MS;
+  }
+
+  return parsed;
+}
+
+function vendorDisplayName(vendor: 'openai' | 'anthropic' | 'gemini'): string {
+  switch (vendor) {
+    case 'openai':
+      return 'OpenAI/Codex';
+    case 'anthropic':
+      return 'Anthropic/Claude';
+    case 'gemini':
+      return 'Google Gemini';
+  }
+}
+
+function describeVendorTokenRegistrationError(
+  vendor: 'openai' | 'anthropic' | 'gemini',
+  error: unknown,
+  timeoutMs: number,
+): string {
+  const vendorName = vendorDisplayName(vendor);
+  let details = error instanceof Error ? error.message : 'Unknown error';
+
+  if (axios.isAxiosError(error)) {
+    if (error.code === 'ECONNABORTED') {
+      details = `request timed out after ${timeoutMs}ms`;
+    } else if (error.response?.status) {
+      details = `server returned HTTP ${error.response.status}`;
+    } else if (error.code) {
+      details = `network error ${error.code}`;
+    }
+  }
+
+  const guidance = vendor === 'openai'
+    ? 'Normal Codex usage uses local Codex CLI subscription auth; run "codex login" and then "happy codex". Only retry "happy connect codex --upload-token" if you intentionally need server-stored OpenAI auth.'
+    : `Retry "happy connect ${vendor === 'anthropic' ? 'claude' : 'gemini'}" after checking your server connection.`;
+
+  return `Failed to register ${vendorName} token with Happy server: ${details}. ${guidance}`;
+}
+
 export class ApiClient {
 
   static async create(credential: Credentials) {
@@ -292,6 +344,7 @@ export class ApiClient {
    * The token is sent as a JSON string - server handles encryption
    */
   async registerVendorToken(vendor: 'openai' | 'anthropic' | 'gemini', apiKey: any): Promise<void> {
+    const timeout = vendorTokenRegistrationTimeoutMs();
     try {
       const response = await axios.post(
         `${configuration.serverUrl}/v1/connect/${vendor}/register`,
@@ -304,7 +357,7 @@ export class ApiClient {
             'Content-Type': 'application/json',
             'X-Happy-Client': `cli-coding-session/${configuration.currentCliVersion}`
           },
-          timeout: 5000
+          timeout
         }
       );
 
@@ -315,7 +368,7 @@ export class ApiClient {
       logger.debug(`[API] Vendor token for ${vendor} registered successfully`);
     } catch (error) {
       logger.debug(`[API] [ERROR] Failed to register vendor token:`, error);
-      throw new Error(`Failed to register vendor token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(describeVendorTokenRegistrationError(vendor, error, timeout));
     }
   }
 

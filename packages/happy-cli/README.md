@@ -89,9 +89,12 @@ To connect third-party agent APIs:
 ```bash
 happy connect gemini
 happy connect claude
-happy connect codex
 happy connect status
 ```
+
+Codex uses local Codex CLI subscription auth by default. Run `codex login`, then
+`happy codex`. `happy connect codex --upload-token` is only for flows that
+intentionally upload OpenAI OAuth material to the Happy server.
 
 ## Commands
 
