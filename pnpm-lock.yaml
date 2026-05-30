@@ -569,9 +569,6 @@ importers:
       expo-brightness:
         specifier: ~55.0.0
         version: 55.0.9(expo@55.0.8)(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))
-      expo-calendar:
-        specifier: ~55.0.0
-        version: 55.0.10(expo@55.0.8)(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))
       expo-camera:
         specifier: ~55.0.0
         version: 55.0.10(@types/emscripten@1.41.5)(expo@55.0.8)(react-native-web@0.21.2(encoding@0.1.13)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0)
@@ -647,9 +644,6 @@ importers:
       expo-localization:
         specifier: ~55.0.0
         version: 55.0.9(expo@55.0.8)(react@19.2.0)
-      expo-location:
-        specifier: ~55.0.0
-        version: 55.0.7(expo@55.0.8)
       expo-mail-composer:
         specifier: ~55.0.0
         version: 55.0.9(expo@55.0.8)
@@ -7418,12 +7412,6 @@ packages:
       expo: '*'
       react-native: '*'
 
-  expo-calendar@55.0.10:
-    resolution: {integrity: sha512-UvETOHoUbXwNNT6sV61URbKhxgqHzyvtcUNTdnBo4ndLMx5Drd3KARK9YHG0wKCacBo43D/aCl8d7E2g6ngngQ==}
-    peerDependencies:
-      expo: '*'
-      react-native: '*'
-
   expo-camera@55.0.10:
     resolution: {integrity: sha512-ftDNJbGsAPNJ/QrM3j6g8/rQAOqTwZpqtvmzF7V9VX0movaCznZFdYsLi/Fff9WeEk1KzcnLIlmSz4Tj+BCrJA==}
     peerDependencies:
@@ -7620,11 +7608,6 @@ packages:
     peerDependencies:
       expo: '*'
       react: '*'
-
-  expo-location@55.0.7:
-    resolution: {integrity: sha512-feB/6ze0zbV0LEwAwApbljuy+S9BpaAztC+0PI17VXoZLaSmjrFKcIEAO4NZZ0OhuF0FmciFdHwI2ZyDyDUwbg==}
-    peerDependencies:
-      expo: '*'
 
   expo-mail-composer@55.0.9:
     resolution: {integrity: sha512-c/++9Acgg2REbViQLBViF5zTAAG0aqnnhnqalMzg6XnSks0UYzfkxnIEfpe4STgdOfzWjxotIc7/eHpvh+5fRg==}
@@ -19764,11 +19747,6 @@ snapshots:
       expo: 55.0.8(@babel/core@7.28.6)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.7)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.15.0(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0))(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       react-native: 0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0)
 
-  expo-calendar@55.0.10(expo@55.0.8)(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0)):
-    dependencies:
-      expo: 55.0.8(@babel/core@7.28.6)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.7)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.15.0(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0))(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
-      react-native: 0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0)
-
   expo-camera@55.0.10(@types/emscripten@1.41.5)(expo@55.0.8)(react-native-web@0.21.2(encoding@0.1.13)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0):
     dependencies:
       barcode-detector: 3.1.1(@types/emscripten@1.41.5)
@@ -19959,11 +19937,6 @@ snapshots:
       expo: 55.0.8(@babel/core@7.28.6)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.7)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.15.0(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0))(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       react: 19.2.0
       rtl-detect: 1.1.2
-
-  expo-location@55.0.7(expo@55.0.8):
-    dependencies:
-      '@expo/image-utils': 0.8.12
-      expo: 55.0.8(@babel/core@7.28.6)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.7)(react-dom@19.2.0(react@19.2.0))(react-native-webview@13.15.0(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0))(react-native@0.83.1(@babel/core@7.28.6)(@types/react@19.1.17)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
 
   expo-mail-composer@55.0.9(expo@55.0.8):
     dependencies:
