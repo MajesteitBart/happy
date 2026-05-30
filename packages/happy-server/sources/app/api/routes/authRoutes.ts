@@ -4,14 +4,73 @@ import * as privacyKit from "privacy-kit";
 import { db } from "@/storage/db";
 import { auth } from "@/app/auth/auth";
 import { log } from "@/utils/log";
+import { AUTH_NONCE_PURPOSE, consumeAuthNonce, createAuthNonce, createAuthNonceSignedPayload } from "../authNonce";
+
+function firstHeaderValue(value: string | string[] | undefined) {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+function requestServerOrigin(request: { protocol: string; headers: Record<string, string | string[] | undefined> }) {
+    const forwardedProto = firstHeaderValue(request.headers["x-forwarded-proto"]);
+    const forwardedHost = firstHeaderValue(request.headers["x-forwarded-host"]);
+    const host = forwardedHost ?? firstHeaderValue(request.headers.host) ?? "unknown";
+    const protocol = forwardedProto ?? request.protocol;
+    return `${protocol}://${host}`;
+}
+
+function requestClientId(request: { headers: Record<string, string | string[] | undefined> }) {
+    return firstHeaderValue(request.headers["x-happy-client"]) ?? "unknown";
+}
 
 export function authRoutes(app: Fastify) {
+    app.post('/v1/auth/nonce', {
+        schema: {
+            body: z.object({
+                publicKey: z.string(),
+                purpose: z.literal(AUTH_NONCE_PURPOSE).optional()
+            }),
+            response: {
+                200: z.object({
+                    nonceId: z.string(),
+                    nonce: z.string(),
+                    expiresAt: z.string(),
+                    purpose: z.literal(AUTH_NONCE_PURPOSE),
+                    serverOrigin: z.string(),
+                    clientId: z.string(),
+                    signedPayload: z.string()
+                }),
+                401: z.object({
+                    error: z.literal('Invalid public key')
+                })
+            }
+        }
+    }, async (request, reply) => {
+        const tweetnacl = (await import("tweetnacl")).default;
+        const publicKey = privacyKit.decodeBase64(request.body.publicKey);
+        const isValid = tweetnacl.sign.publicKeyLength === publicKey.length;
+        if (!isValid) {
+            return reply.code(401).send({ error: 'Invalid public key' });
+        }
+
+        return reply.send(createAuthNonce({
+            publicKey: request.body.publicKey,
+            serverOrigin: requestServerOrigin(request),
+            clientId: requestClientId(request),
+            purpose: request.body.purpose ?? AUTH_NONCE_PURPOSE
+        }));
+    });
+
     app.post('/v1/auth', {
         schema: {
             body: z.object({
                 publicKey: z.string(),
                 challenge: z.string(),
-                signature: z.string()
+                signature: z.string(),
+                nonceId: z.string().optional(),
+                nonce: z.string().optional(),
+                purpose: z.literal(AUTH_NONCE_PURPOSE).optional(),
+                serverOrigin: z.string().optional(),
+                clientId: z.string().optional()
             })
         }
     }, async (request, reply) => {
@@ -19,7 +78,52 @@ export function authRoutes(app: Fastify) {
         const publicKey = privacyKit.decodeBase64(request.body.publicKey);
         const challenge = privacyKit.decodeBase64(request.body.challenge);
         const signature = privacyKit.decodeBase64(request.body.signature);
-        const isValid = tweetnacl.sign.detached.verify(challenge, signature, publicKey);
+        let isSignatureVerified = false;
+
+        if (request.body.nonceId || request.body.nonce) {
+            const {
+                nonceId,
+                nonce,
+                purpose = AUTH_NONCE_PURPOSE,
+                serverOrigin,
+                clientId = requestClientId(request)
+            } = request.body;
+
+            if (!nonceId || !nonce || !serverOrigin) {
+                return reply.code(401).send({ error: 'Invalid nonce' });
+            }
+
+            const expectedChallenge = new TextEncoder().encode(createAuthNonceSignedPayload({
+                nonce,
+                serverOrigin,
+                purpose,
+                clientId
+            }));
+
+            if (challenge.length !== expectedChallenge.length || !challenge.every((value, index) => value === expectedChallenge[index])) {
+                return reply.code(401).send({ error: 'Invalid nonce challenge' });
+            }
+
+            isSignatureVerified = tweetnacl.sign.detached.verify(challenge, signature, publicKey);
+            if (!isSignatureVerified) {
+                return reply.code(401).send({ error: 'Invalid signature' });
+            }
+
+            const nonceResult = consumeAuthNonce({
+                nonceId,
+                nonce,
+                publicKey: request.body.publicKey,
+                serverOrigin,
+                purpose,
+                clientId
+            });
+
+            if (!nonceResult.success) {
+                return reply.code(401).send({ error: 'Invalid nonce' });
+            }
+        }
+
+        const isValid = isSignatureVerified || tweetnacl.sign.detached.verify(challenge, signature, publicKey);
         if (!isValid) {
             return reply.code(401).send({ error: 'Invalid signature' });
         }

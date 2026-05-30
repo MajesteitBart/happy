@@ -229,3 +229,23 @@ export function authChallenge(secret: Uint8Array): {
     signature
   };
 }
+
+export function authPublicKey(secret: Uint8Array): Uint8Array {
+  return tweetnacl.sign.keyPair.fromSeed(secret).publicKey;
+}
+
+export function authChallengeForPayload(secret: Uint8Array, payload: string): {
+  challenge: Uint8Array
+  publicKey: Uint8Array
+  signature: Uint8Array
+} {
+  const keypair = tweetnacl.sign.keyPair.fromSeed(secret);
+  const challenge = new TextEncoder().encode(payload);
+  const signature = tweetnacl.sign.detached(challenge, keypair.secretKey);
+
+  return {
+    challenge,
+    publicKey: keypair.publicKey,
+    signature
+  };
+}

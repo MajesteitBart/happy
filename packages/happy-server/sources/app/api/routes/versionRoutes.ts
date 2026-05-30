@@ -19,7 +19,9 @@ export const SERVER_CAPABILITIES = {
     features: {
         attachments: true,
         voice: true,
-        kv: true
+        kv: true,
+        serverIssuedAuthNonces: true,
+        legacyAuthChallengeFallback: true
     },
     modelCatalog: {
         version: 1
@@ -50,7 +52,9 @@ export function versionRoutes(app: Fastify) {
                     features: z.object({
                         attachments: z.boolean(),
                         voice: z.boolean(),
-                        kv: z.boolean()
+                        kv: z.boolean(),
+                        serverIssuedAuthNonces: z.boolean(),
+                        legacyAuthChallengeFallback: z.boolean()
                     }),
                     modelCatalog: z.object({
                         version: z.number()

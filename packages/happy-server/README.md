@@ -71,9 +71,15 @@ Current clients require:
 - `messages.v3Post`
 - `messages.backwardPagination`
 - `messages.idempotentLocalId`
+- `features.serverIssuedAuthNonces`
 
 If a client reports that one of these capabilities is missing, upgrade the
 self-host server package or image before retrying message send/sync.
+
+Current app and CLI clients authenticate with server-issued, one-time nonces.
+The legacy client-generated challenge flow remains available during migration
+for older published clients, and is advertised as
+`features.legacyAuthChallengeFallback`.
 
 ### Optional: External Services
 
