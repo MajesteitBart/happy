@@ -61,6 +61,7 @@ Data persists in the `happy-data` Docker volume across container restarts.
 | `PORT` | No | `3005` | Server port |
 | `DATA_DIR` | No | `/data` | Base data directory |
 | `PGLITE_DIR` | No | `/data/pglite` | PGlite database directory |
+| `HAPPY_ENABLE_LEGACY_AUTH_CHALLENGE_FALLBACK` | No | `false` | Temporarily allow pre-nonce app/CLI clients to authenticate with the legacy signed random challenge flow |
 
 ### Compatibility Endpoint
 
@@ -76,10 +77,19 @@ Current clients require:
 If a client reports that one of these capabilities is missing, upgrade the
 self-host server package or image before retrying message send/sync.
 
+Capabilities also include a real `modelCatalog` contract and the same catalog
+is available at `GET /v1/model-catalog`. The catalog is grouped by provider
+(`claude`, `codex`, `gemini`, `openclaw`) and includes the model code, display
+label, optional description, default marker, and availability flag. Current app
+and CLI clients use catalog version `2` or newer; older or missing catalogs are
+treated as stale and clients fall back to their bundled model lists.
+
 Current app and CLI clients authenticate with server-issued, one-time nonces.
-The legacy client-generated challenge flow remains available during migration
-for older published clients, and is advertised as
-`features.legacyAuthChallengeFallback`.
+The legacy client-generated challenge flow is rejected by default because a
+captured legacy tuple can be replayed. Operators who still need to bridge old
+published clients can temporarily set
+`HAPPY_ENABLE_LEGACY_AUTH_CHALLENGE_FALLBACK=1`; only then does the server
+advertise `features.legacyAuthChallengeFallback`.
 
 ### Optional: External Services
 

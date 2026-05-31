@@ -2,9 +2,9 @@
 id: WS-B
 name: Sync Performance and API Compatibility
 owner: Clark
-status: active
+status: done
 created: 2026-05-30T13:39:41Z
-updated: 2026-05-30T20:18:59Z
+updated: 2026-05-31T07:24:00Z
 operating_mode: feature
 ---
 

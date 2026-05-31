@@ -2,35 +2,37 @@ import { z } from "zod";
 import { type Fastify } from "../types";
 import * as semver from 'semver';
 import { ANDROID_UP_TO_DATE, IOS_UP_TO_DATE } from "@/versions";
+import { isLegacyAuthChallengeFallbackEnabled } from "../authConfig";
+import { getModelCatalog, ModelCatalogSchema } from "../modelCatalog";
 
-export const SERVER_CAPABILITIES = {
-    apiVersion: 1,
-    server: {
-        name: "happy-server-self-host",
-        version: process.env.npm_package_version ?? null
-    },
-    messages: {
-        v3Post: true,
-        backwardPagination: true,
-        idempotentLocalId: true,
-        maxBatchSize: 100,
-        maxPageSize: 500
-    },
-    features: {
-        attachments: true,
-        voice: true,
-        kv: true,
-        serverIssuedAuthNonces: true,
-        legacyAuthChallengeFallback: true
-    },
-    modelCatalog: {
-        version: 1
-    },
-    minimums: {
-        cli: "1.1.10-beta.7",
-        appRuntime: "1.0.0"
-    }
-} as const;
+export function getServerCapabilities() {
+    return {
+        apiVersion: 1,
+        server: {
+            name: "happy-server-self-host",
+            version: process.env.npm_package_version ?? null
+        },
+        messages: {
+            v3Post: true,
+            backwardPagination: true,
+            idempotentLocalId: true,
+            maxBatchSize: 100,
+            maxPageSize: 500
+        },
+        features: {
+            attachments: true,
+            voice: true,
+            kv: true,
+            serverIssuedAuthNonces: true,
+            legacyAuthChallengeFallback: isLegacyAuthChallengeFallbackEnabled()
+        },
+        modelCatalog: getModelCatalog(),
+        minimums: {
+            cli: "1.1.10-beta.7",
+            appRuntime: "1.0.0"
+        }
+    } as const;
+}
 
 export function versionRoutes(app: Fastify) {
     app.get('/v1/capabilities', {
@@ -56,9 +58,7 @@ export function versionRoutes(app: Fastify) {
                         serverIssuedAuthNonces: z.boolean(),
                         legacyAuthChallengeFallback: z.boolean()
                     }),
-                    modelCatalog: z.object({
-                        version: z.number()
-                    }),
+                    modelCatalog: ModelCatalogSchema,
                     minimums: z.object({
                         cli: z.string(),
                         appRuntime: z.string()
@@ -67,7 +67,17 @@ export function versionRoutes(app: Fastify) {
             }
         }
     }, async (_request, reply) => {
-        reply.send(SERVER_CAPABILITIES);
+        reply.send(getServerCapabilities());
+    });
+
+    app.get('/v1/model-catalog', {
+        schema: {
+            response: {
+                200: ModelCatalogSchema
+            }
+        }
+    }, async (_request, reply) => {
+        reply.send(getModelCatalog());
     });
 
     app.post('/v1/version', {

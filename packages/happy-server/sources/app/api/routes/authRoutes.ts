@@ -4,6 +4,7 @@ import * as privacyKit from "privacy-kit";
 import { db } from "@/storage/db";
 import { auth } from "@/app/auth/auth";
 import { log } from "@/utils/log";
+import { isLegacyAuthChallengeFallbackEnabled } from "../authConfig";
 import { AUTH_NONCE_PURPOSE, consumeAuthNonce, createAuthNonce, createAuthNonceSignedPayload } from "../authNonce";
 
 function firstHeaderValue(value: string | string[] | undefined) {
@@ -121,6 +122,8 @@ export function authRoutes(app: Fastify) {
             if (!nonceResult.success) {
                 return reply.code(401).send({ error: 'Invalid nonce' });
             }
+        } else if (!isLegacyAuthChallengeFallbackEnabled()) {
+            return reply.code(401).send({ error: 'Server-issued nonce required' });
         }
 
         const isValid = isSignatureVerified || tweetnacl.sign.detached.verify(challenge, signature, publicKey);

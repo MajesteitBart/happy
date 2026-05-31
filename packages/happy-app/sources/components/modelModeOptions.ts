@@ -1,6 +1,7 @@
 import type { Metadata } from '@/sync/storageTypes';
 import { hackModes } from '@/sync/modeHacks';
-import { getCodeAgentDefaults } from '@/sync/agentDefaults';
+import { getCodeAgentDefaults, normalizeAgentKey } from '@/sync/agentDefaults';
+import type { ServerCapabilities, ServerModelCatalogEntry } from '@/sync/apiCapabilities';
 
 export type ModeOption = {
     key: string;
@@ -34,6 +35,8 @@ const GEMINI_MODEL_FALLBACKS: ModelMode[] = [
     { key: 'gemini-2.5-flash-lite', name: 'gemini 2.5 flash lite', description: 'fastest' },
 ];
 
+const MIN_SUPPORTED_MODEL_CATALOG_VERSION = 2;
+
 export function mapMetadataOptions(options?: MetadataOption[] | null): ModeOption[] {
     if (!options || options.length === 0) {
         return [];
@@ -44,6 +47,34 @@ export function mapMetadataOptions(options?: MetadataOption[] | null): ModeOptio
         name: option.value,
         description: option.description ?? null,
     }));
+}
+
+function mapCatalogOptions(options?: ServerModelCatalogEntry[] | null): ModeOption[] {
+    if (!options || options.length === 0) {
+        return [];
+    }
+
+    return options
+        .filter((option) => option.available !== false)
+        .filter((option) => typeof option.code === 'string' && typeof option.value === 'string')
+        .map((option) => ({
+            key: option.code as string,
+            name: option.value as string,
+            description: option.description ?? null,
+        }));
+}
+
+export function getCatalogModelModes(
+    flavor: AgentFlavor,
+    capabilities: ServerCapabilities | null | undefined,
+): ModelMode[] {
+    const catalog = capabilities?.modelCatalog;
+    if (!catalog || (catalog.version ?? 0) < MIN_SUPPORTED_MODEL_CATALOG_VERSION) {
+        return [];
+    }
+
+    const key = normalizeAgentKey(flavor);
+    return mapCatalogOptions(catalog.providers?.[key]);
 }
 
 export function getClaudePermissionModes(translate: Translate): PermissionMode[] {
@@ -143,6 +174,7 @@ export function getAvailableModels(
     flavor: AgentFlavor,
     metadata: Metadata | null | undefined,
     translate: Translate,
+    capabilities?: ServerCapabilities | null,
 ): ModelMode[] {
     const metadataModels = mapMetadataOptions(metadata?.models);
     if (metadataModels.length > 0) {
@@ -150,6 +182,10 @@ export function getAvailableModels(
             return [{ key: 'default', name: 'default model', description: null }, ...metadataModels];
         }
         return metadataModels;
+    }
+    const catalogModels = getCatalogModelModes(flavor, capabilities);
+    if (catalogModels.length > 0) {
+        return catalogModels;
     }
     return getHardcodedModelModes(flavor, translate);
 }

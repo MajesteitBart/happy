@@ -66,6 +66,9 @@ progress*.txt
 # OpenCode trace output (script is committed, output is not)
 docs/competition/opencode/traces/
 
+# Local/CI evidence output
+artifacts/
+
 # scratch tooling
 .cdp-scripts/
 happy-workspaces/

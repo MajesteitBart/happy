@@ -17,11 +17,22 @@ export type ServerCapabilities = {
     features?: Record<string, boolean>;
     modelCatalog?: {
         version?: number;
+        updatedAt?: string;
+        defaults?: Record<string, string>;
+        providers?: Record<string, ServerModelCatalogEntry[]>;
     };
     minimums?: {
         cli?: string;
         appRuntime?: string;
     };
+};
+
+export type ServerModelCatalogEntry = {
+    code?: string;
+    value?: string;
+    description?: string | null;
+    available?: boolean;
+    default?: boolean;
 };
 
 const REQUIRED_V3_MESSAGE_CAPABILITIES = [
@@ -144,4 +155,8 @@ export async function requireV3MessageCapabilities(serverUrl = getServerUrl()): 
 
 export function clearServerCapabilitiesCacheForTests() {
     cachedCapabilities = null;
+}
+
+export function getCachedServerCapabilities(): ServerCapabilities | null {
+    return cachedCapabilities?.capabilities ?? null;
 }

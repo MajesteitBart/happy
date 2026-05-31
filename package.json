@@ -14,6 +14,8 @@
         "test:wire": "pnpm --filter @slopus/happy-wire test",
         "test:agent": "pnpm --filter happy-agent test",
         "test:cli:unit": "pnpm --filter happy exec vitest run --project unit",
+        "test:compatibility": "pnpm --filter happy-app exec vitest run sources/sync/apiCapabilities.test.ts && pnpm --filter happy-server-self-host exec vitest run sources/app/api/routes/versionRoutes.test.ts && pnpm --filter happy exec vitest run --project unit src/api/apiSession.test.ts src/api/apiMachine.test.ts",
+        "evidence:compatibility": "node scripts/write-compatibility-evidence.cjs",
         "test:cli:integration": "pnpm --filter happy test:integration",
         "test:integration": "pnpm --filter happy test:integration && pnpm --filter happy-agent test:integration",
         "test:security": "pnpm --filter happy exec vitest run --project unit src/daemon/controlServer.test.ts src/persistence.test.ts src/modules/common/pathSecurity.test.ts src/claude/utils/proxyBypass.test.ts && pnpm --filter happy-server-self-host exec vitest run sources/app/api/authNonce.test.ts sources/app/api/routes/authRoutes.test.ts sources/app/api/routes/attachmentRoutes.spec.ts",

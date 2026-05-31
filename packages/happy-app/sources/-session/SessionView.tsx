@@ -26,6 +26,7 @@ import { storage, useIsDataReady, useLocalSetting, useRealtimeStatus, useSession
 import { useSession } from '@/sync/storage';
 import { Session } from '@/sync/storageTypes';
 import { sync } from '@/sync/sync';
+import { getCachedServerCapabilities } from '@/sync/apiCapabilities';
 import { t } from '@/text';
 import { tracking } from '@/track';
 import { getVoiceMessageCount, getVoiceOnboardingPromptLoadCount } from '@/sync/persistence';
@@ -441,9 +442,10 @@ function SessionViewLoaded({ sessionId, session }: { sessionId: string, session:
     const isAcknowledged = machineId && acknowledgedCliVersions[machineId] === cliVersion;
     const shouldShowCliWarning = isCliOutdated && !isAcknowledged;
     const flavor = session.metadata?.flavor;
+    const serverCapabilities = getCachedServerCapabilities();
     const availableModels = React.useMemo(() => (
-        getAvailableModels(flavor, session.metadata, t)
-    ), [flavor, session.metadata]);
+        getAvailableModels(flavor, session.metadata, t, serverCapabilities)
+    ), [flavor, session.metadata, serverCapabilities]);
     const availableModes = React.useMemo(() => (
         getAvailablePermissionModes(flavor, session.metadata, t)
     ), [flavor, session.metadata]);

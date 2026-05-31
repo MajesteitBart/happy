@@ -15,6 +15,7 @@ import { detectCLIAvailability, CLIAvailability } from '@/utils/detectCLI';
 import { detectResumeSupport, type ResumeSupport } from '@/resume/localHappyAgentAuth';
 import { getReconnectDecision } from '@/utils/lidState';
 import { summarizeSocketConnectError } from '@/utils/socketDiagnostics';
+import { createSocketIoProxyOptions } from '@/utils/socketProxy';
 import { getProjectPath } from '@/claude/utils/path';
 import {
     forkSession as claudeForkSession,
@@ -367,6 +368,7 @@ export class ApiMachineClient {
             },
             path: '/v1/updates',
             reconnection: false,
+            ...createSocketIoProxyOptions()
         });
 
         this.socket.on('connect', () => {

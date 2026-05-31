@@ -597,7 +597,7 @@ export class CodexAppServerClient {
             developerInstructions: null,
             compactPrompt: null,
             includeApplyPatchTool: null,
-            experimentalRawEvents: false,
+            experimentalRawEvents: true,
             persistExtendedHistory: true,
         };
 

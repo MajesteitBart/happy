@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ToolViewProps } from './_all';
 import { ToolSectionView } from '../ToolSectionView';
@@ -120,6 +120,17 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.textSecondary,
         marginTop: 2,
     },
+    otherInput: {
+        borderWidth: 1,
+        borderColor: theme.colors.divider,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        minHeight: 44,
+        color: theme.colors.text,
+        backgroundColor: theme.colors.surface,
+        fontSize: 14,
+    },
     actionsContainer: {
         flexDirection: 'row',
         gap: 12,
@@ -167,6 +178,7 @@ const styles = StyleSheet.create((theme) => ({
 export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId }) => {
     const { theme } = useUnistyles();
     const [selections, setSelections] = React.useState<Map<number, Set<number>>>(new Map());
+    const [otherAnswers, setOtherAnswers] = React.useState<Map<number, string>>(new Map());
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isSubmitted, setIsSubmitted] = React.useState(false);
 
@@ -184,7 +196,8 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
     // Check if all questions have at least one selection
     const allQuestionsAnswered = questions.every((_, qIndex) => {
         const selected = selections.get(qIndex);
-        return selected && selected.size > 0;
+        const other = otherAnswers.get(qIndex)?.trim();
+        return (selected && selected.size > 0) || !!other;
     });
 
     const handleOptionToggle = React.useCallback((questionIndex: number, optionIndex: number, multiSelect: boolean) => {
@@ -210,6 +223,42 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
 
             return newMap;
         });
+
+        if (!multiSelect) {
+            setOtherAnswers(prev => {
+                if (!prev.has(questionIndex)) {
+                    return prev;
+                }
+                const newMap = new Map(prev);
+                newMap.delete(questionIndex);
+                return newMap;
+            });
+        }
+    }, [canInteract]);
+
+    const handleOtherAnswerChange = React.useCallback((questionIndex: number, text: string, multiSelect: boolean) => {
+        if (!canInteract) return;
+
+        setOtherAnswers(prev => {
+            const newMap = new Map(prev);
+            if (text.trim().length > 0) {
+                newMap.set(questionIndex, text);
+            } else {
+                newMap.delete(questionIndex);
+            }
+            return newMap;
+        });
+
+        if (!multiSelect) {
+            setSelections(prev => {
+                if (!prev.has(questionIndex)) {
+                    return prev;
+                }
+                const newMap = new Map(prev);
+                newMap.delete(questionIndex);
+                return newMap;
+            });
+        }
     }, [canInteract]);
 
     const handleSubmit = React.useCallback(async () => {
@@ -225,13 +274,22 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
 
         const answers: Record<string, string> = {};
         questions.forEach((q, qIndex) => {
+            const answerParts: string[] = [];
             const selected = selections.get(qIndex);
             if (selected && selected.size > 0) {
                 const selectedLabels = Array.from(selected)
                     .map(optIndex => q.options[optIndex]?.label)
-                    .filter(Boolean)
-                    .join(', ');
-                answers[q.question] = selectedLabels;
+                    .filter(Boolean);
+                answerParts.push(...selectedLabels);
+            }
+
+            const other = otherAnswers.get(qIndex)?.trim();
+            if (other) {
+                answerParts.push(other);
+            }
+
+            if (answerParts.length > 0) {
+                answers[q.question] = answerParts.join(', ');
             }
         });
 
@@ -246,7 +304,7 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
         } finally {
             setIsSubmitting(false);
         }
-    }, [sessionId, questions, selections, allQuestionsAnswered, isSubmitting, tool.permission?.id]);
+    }, [sessionId, questions, selections, otherAnswers, allQuestionsAnswered, isSubmitting, tool.permission?.id]);
 
     // Show submitted state
     if (isSubmitted || tool.state === 'completed') {
@@ -255,16 +313,17 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
                 <View style={styles.submittedContainer}>
                     {questions.map((q, qIndex) => {
                         const selected = selections.get(qIndex);
+                        const other = otherAnswers.get(qIndex)?.trim();
                         const selectedLabels = selected
                             ? Array.from(selected)
                                 .map(optIndex => q.options[optIndex]?.label)
                                 .filter(Boolean)
-                                .join(', ')
-                            : '-';
+                            : [];
+                        const answerParts = other ? [...selectedLabels, other] : selectedLabels;
                         return (
                             <View key={qIndex} style={styles.submittedItem}>
                                 <Text style={styles.submittedHeader}>{q.header}:</Text>
-                                <Text style={styles.submittedValue}>{selectedLabels}</Text>
+                                <Text style={styles.submittedValue}>{answerParts.length > 0 ? answerParts.join(', ') : '-'}</Text>
                             </View>
                         );
                     })}
@@ -327,6 +386,16 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
                                         </TouchableOpacity>
                                     );
                                 })}
+                                <TextInput
+                                    style={styles.otherInput}
+                                    value={otherAnswers.get(qIndex) ?? ''}
+                                    placeholder={t('tools.askUserQuestion.otherPlaceholder')}
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                    onChangeText={(text) => handleOtherAnswerChange(qIndex, text, question.multiSelect)}
+                                    editable={canInteract}
+                                    multiline
+                                    accessibilityLabel={t('tools.askUserQuestion.other')}
+                                />
                             </View>
                         </View>
                     );

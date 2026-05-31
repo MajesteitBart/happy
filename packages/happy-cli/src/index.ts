@@ -34,6 +34,7 @@ import { extractNoSandboxFlag } from './utils/sandboxFlags'
 import { handleResumeCommand } from '@/resume/handleResumeCommand'
 import { ensureDaemonRunning } from './daemon/ensureDaemonRunning'
 import { handleCodexCommand } from './commands/codexCommand'
+import { getAvailableModelCodes } from './utils/modelCatalog'
 
 
 (async () => {
@@ -155,7 +156,7 @@ Conversation history is preserved on the server, but in-flight tool calls are in
     // Handle "happy gemini model set <model>" command
     if (geminiSubcommand === 'model' && args[2] === 'set' && args[3]) {
       const modelName = args[3];
-      const validModels = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+      const validModels = await getAvailableModelCodes('gemini');
       
       if (!validModels.includes(modelName)) {
         console.error(`Invalid model: ${modelName}`);

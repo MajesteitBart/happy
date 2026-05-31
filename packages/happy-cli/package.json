@@ -100,6 +100,7 @@
     "inquirer": "13.2.2",
     "mute-stream": "3.0.0",
     "open": "^10.2.0",
+    "proxy-agent": "^6.5.0",
     "ps-list": "^8.1.1",
     "qrcode-terminal": "^0.12.0",
     "react": "^19.2.0",

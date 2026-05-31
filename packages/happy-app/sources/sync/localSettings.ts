@@ -38,7 +38,7 @@ export const localSettingsDefaults: LocalSettings = {
     voiceUpsellOverride: null,
     commandPaletteEnabled: false,
     themePreference: 'adaptive',
-    markdownCopyV2: false,
+    markdownCopyV2: true,
     consoleLoggingEnabled: false,
     verboseLogging: false,
     zenMode: false,

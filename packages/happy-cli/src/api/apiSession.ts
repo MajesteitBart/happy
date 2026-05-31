@@ -22,6 +22,7 @@ import {
 import { InvalidateSync } from '@/utils/sync';
 import axios from 'axios';
 import { summarizeSocketConnectError } from '@/utils/socketDiagnostics';
+import { createSocketIoProxyOptions } from '@/utils/socketProxy';
 
 /**
  * ACP (Agent Communication Protocol) message data types.
@@ -165,7 +166,8 @@ export class ApiSessionClient extends EventEmitter {
             reconnection: false,
             transports: ['websocket'],
             withCredentials: true,
-            autoConnect: false
+            autoConnect: false,
+            ...createSocketIoProxyOptions()
         });
 
         //

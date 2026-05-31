@@ -2,9 +2,9 @@
 id: WS-A
 name: Session Lifecycle and Handoff
 owner: Clark
-status: active
+status: done
 created: 2026-05-30T13:39:41Z
-updated: 2026-05-30T20:18:59Z
+updated: 2026-05-31T07:34:22Z
 operating_mode: feature
 ---
 

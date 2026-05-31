@@ -362,6 +362,12 @@ describe('CodexAppServerClient sandbox integration', () => {
         }));
         expect(client.threadId).toBe('thread-1');
 
+        const startRequest = firstProcessRequests.find((msg) => msg.method === 'thread/start');
+        expect(startRequest?.params).toEqual(expect.objectContaining({
+            experimentalRawEvents: true,
+            persistExtendedHistory: true,
+        }));
+
         await expect(client.sendTurnAndWait('follow up after reconnect')).resolves.toEqual({ aborted: false });
 
         await client.disconnect();

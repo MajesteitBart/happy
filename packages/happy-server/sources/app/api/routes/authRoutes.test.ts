@@ -53,6 +53,7 @@ describe("authRoutes", () => {
     afterEach(async () => {
         await app.close();
         vi.clearAllMocks();
+        vi.unstubAllEnvs();
     });
 
     it("authenticates with a server-issued nonce and rejects replay", async () => {
@@ -162,5 +163,48 @@ describe("authRoutes", () => {
 
         expect(authResponse.statusCode).toBe(401);
         expect(authResponse.json()).toEqual({ error: "Invalid nonce" });
+    });
+
+    it("rejects legacy challenge auth by default", async () => {
+        const keypair = tweetnacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(11));
+        const challenge = new Uint8Array(32).fill(12);
+        const signature = tweetnacl.sign.detached(challenge, keypair.secretKey);
+
+        const response = await app.inject({
+            method: "POST",
+            url: "/v1/auth",
+            payload: {
+                publicKey: encodeBase64(keypair.publicKey),
+                challenge: encodeBase64(challenge),
+                signature: encodeBase64(signature)
+            }
+        });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.json()).toEqual({ error: "Server-issued nonce required" });
+        expect(mocks.accountUpsert).not.toHaveBeenCalled();
+    });
+
+    it("accepts legacy challenge auth only when explicitly enabled", async () => {
+        await app.close();
+        vi.stubEnv("HAPPY_ENABLE_LEGACY_AUTH_CHALLENGE_FALLBACK", "1");
+        app = createApp();
+
+        const keypair = tweetnacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(13));
+        const challenge = new Uint8Array(32).fill(14);
+        const signature = tweetnacl.sign.detached(challenge, keypair.secretKey);
+
+        const response = await app.inject({
+            method: "POST",
+            url: "/v1/auth",
+            payload: {
+                publicKey: encodeBase64(keypair.publicKey),
+                challenge: encodeBase64(challenge),
+                signature: encodeBase64(signature)
+            }
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json()).toEqual({ success: true, token: "token-1" });
     });
 });

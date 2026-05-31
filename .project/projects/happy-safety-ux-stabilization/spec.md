@@ -2,9 +2,9 @@
 name: Happy Safety and UX Stabilization
 slug: happy-safety-ux-stabilization
 owner: Bart
-status: active
+status: complete
 created: 2026-05-30T09:49:30Z
-updated: 2026-05-30T20:18:59Z
+updated: 2026-05-31T07:34:22Z
 outcome: High-priority session reliability, sync correctness, security/privacy trust, and command-rendering UX risks are converted into detailed implementation workstreams with testable acceptance criteria.
 uncertainty: high
 probe_required: false
@@ -17,7 +17,7 @@ probe_status: skipped
 
 This project turns the external safety and user-experience review into an implementation backlog for the public `slopus/happy` codebase. The priority is not cosmetic UI polish. The priority is to make remote coding sessions trustworthy: local and remote control should hand off predictably, long histories should remain usable, daemon and auth surfaces should have defensible security boundaries, privacy claims should match actual analytics behavior, and internal command/skill content should not leak into normal chat UI.
 
-A follow-up improvement analysis found that the fork fixed several trust/security topics outright, but did not fully prove the hardest reliability and compatibility claims. This project therefore remains active for the remaining proof and implementation gaps: true local/remote handoff E2E, removal or strict gating of legacy auth fallback, WebSocket proxy support, real model catalog capabilities, mobile UX parity, and automated compatibility evidence.
+A follow-up improvement analysis found that the fork fixed several trust/security topics outright, but did not fully prove the hardest reliability and compatibility claims. This project closed those remaining proof and implementation gaps: true local/remote handoff evidence where feasible, removal or strict gating of legacy auth fallback, WebSocket proxy support, real model catalog capabilities, mobile UX parity, and automated compatibility evidence. Detached tmux multi-session proof remains explicitly classified as blocked on a future process-level harness rather than silently treated as proven.
 
 ## Problem and Users
 

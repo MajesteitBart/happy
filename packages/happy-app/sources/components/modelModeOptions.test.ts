@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     getAvailableModels,
     getAvailablePermissionModes,
+    getCatalogModelModes,
     getCodexModelModes,
     getClaudePermissionModes,
     getDefaultEffortKey,
@@ -77,6 +78,59 @@ describe('modelModeOptions', () => {
         expect(models).toEqual([
             { key: 'default', name: 'default model', description: null },
             { key: 'gpt-5.4', name: 'gpt-5.4', description: 'Latest' },
+        ]);
+    });
+
+    it('uses model catalog entries when session metadata models are missing', () => {
+        const models = getAvailableModels('codex', null, translate, {
+            apiVersion: 1,
+            modelCatalog: {
+                version: 2,
+                providers: {
+                    codex: [
+                        { code: 'default', value: 'default model' },
+                        { code: 'gpt-new', value: 'gpt-new', description: 'from server catalog' },
+                    ],
+                },
+            },
+        });
+
+        expect(models).toEqual([
+            { key: 'default', name: 'default model', description: null },
+            { key: 'gpt-new', name: 'gpt-new', description: 'from server catalog' },
+        ]);
+    });
+
+    it('falls back when the model catalog is missing or stale', () => {
+        expect(getAvailableModels('codex', null, translate, {
+            apiVersion: 1,
+        }).map((model) => model.key)).toEqual(getCodexModelModes().map((model) => model.key));
+
+        expect(getCatalogModelModes('codex', {
+            apiVersion: 1,
+            modelCatalog: {
+                version: 1,
+                providers: {
+                    codex: [{ code: 'stale-new-model', value: 'stale new model' }],
+                },
+            },
+        })).toEqual([]);
+    });
+
+    it('filters unavailable catalog models', () => {
+        expect(getCatalogModelModes('gemini', {
+            apiVersion: 1,
+            modelCatalog: {
+                version: 2,
+                providers: {
+                    gemini: [
+                        { code: 'gemini-visible', value: 'Gemini Visible' },
+                        { code: 'gemini-disabled', value: 'Gemini Disabled', available: false },
+                    ],
+                },
+            },
+        })).toEqual([
+            { key: 'gemini-visible', name: 'Gemini Visible', description: null },
         ]);
     });
 

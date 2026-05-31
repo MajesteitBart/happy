@@ -1,9 +1,9 @@
 ---
 name: Happy Safety and UX Stabilization
-status: active
+status: done
 lead: Clark
 created: 2026-05-30T09:49:30Z
-updated: 2026-05-30T20:18:59Z
+updated: 2026-05-31T07:34:22Z
 linear_project_id: 
 risk_level: high
 spec_status_at_plan_time: planned
@@ -15,7 +15,7 @@ spec_status_at_plan_time: planned
 
 The scaffold project has been replaced with a detailed plan based on the attached public source-review report. The scope focuses on high-priority issues that improve safety and user experience: session lifecycle, sync scalability, security/privacy trust, command rendering, and CI/release safety.
 
-The later improvement analysis confirms that several slices are fixed or materially improved, but it also downgrades the hardest reliability items from "closed" to "needs proof." This project is reopened for follow-up verification and remaining implementation work around true handoff E2E coverage, legacy auth fallback removal, corporate proxy WebSocket support, real model catalog capabilities, mobile UX gaps, and automated compatibility evidence.
+The later improvement analysis confirmed that several slices were fixed or materially improved, but it downgraded the hardest reliability items from "closed" to "needs proof." This project delivered the follow-up verification and remaining implementation work around Codex handoff evidence, legacy auth fallback removal, corporate proxy WebSocket support, real model catalog capabilities, mobile UX gaps, and automated compatibility evidence.
 
 ## Technical Context
 

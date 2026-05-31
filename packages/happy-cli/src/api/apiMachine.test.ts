@@ -64,6 +64,10 @@ vi.mock('@/utils/lidState', () => ({
     getReconnectDecision: mockGetReconnectDecision
 }));
 
+vi.mock('@/utils/socketProxy', () => ({
+    createSocketIoProxyOptions: () => ({ agent: 'test-proxy-agent' })
+}));
+
 type SocketHandler = (...args: any[]) => void;
 type SocketHandlers = Record<string, SocketHandler[]>;
 
@@ -131,7 +135,8 @@ describe('ApiMachineClient socket reconnection', () => {
         client.connect();
 
         expect(mockIo).toHaveBeenCalledWith('ws://127.0.0.1:3005', expect.objectContaining({
-            reconnection: false
+            reconnection: false,
+            agent: 'test-proxy-agent'
         }));
         expect(mockSocket.connect).not.toHaveBeenCalled();
 

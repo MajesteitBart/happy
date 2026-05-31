@@ -122,6 +122,7 @@ intentionally upload OpenAI OAuth material to the Happy server.
 | `HAPPY_HOME_DIR` | Custom home directory for Happy data (default: `~/.happy`) |
 | `HAPPY_DISABLE_CAFFEINATE` | Disable macOS sleep prevention |
 | `HAPPY_EXPERIMENTAL` | Enable experimental features |
+| `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | Corporate proxy settings for daemon/session Socket.IO WebSocket connections. `WS_PROXY`/`WSS_PROXY` are also honored when set. |
 
 ### Sandbox (experimental)
 

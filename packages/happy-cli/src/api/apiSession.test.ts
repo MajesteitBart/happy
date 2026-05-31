@@ -74,6 +74,10 @@ vi.mock('@/utils/lidState', () => ({
     getReconnectDecision: mockGetReconnectDecision
 }));
 
+vi.mock('@/utils/socketProxy', () => ({
+    createSocketIoProxyOptions: () => ({ agent: 'test-proxy-agent' })
+}));
+
 type SocketHandler = (...args: any[]) => void;
 type SocketHandlers = Record<string, SocketHandler[]>;
 
@@ -184,6 +188,9 @@ describe('ApiSessionClient v3 messages API migration', () => {
     it('registers core socket handlers and connects', () => {
         new ApiSessionClient('fake-token', session);
 
+        expect(mockIo).toHaveBeenCalledWith('https://server.test', expect.objectContaining({
+            agent: 'test-proxy-agent'
+        }));
         expect(mockSocket.on).toHaveBeenCalledWith('connect', expect.any(Function));
         expect(mockSocket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
         expect(mockSocket.on).toHaveBeenCalledWith('update', expect.any(Function));
